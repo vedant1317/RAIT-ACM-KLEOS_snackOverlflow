@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 import os
 
-from groq import Groq
-
 from ..models.schemas import Mismatch
 
 _MODEL = os.environ.get("GROQ_EXPLAIN_MODEL", "llama-3.3-70b-versatile")
@@ -28,7 +26,9 @@ _HEADLINE_SYSTEM_PROMPT = (
 )
 
 
-def _client() -> Groq:
+def _client():
+    from groq import Groq
+
     return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 

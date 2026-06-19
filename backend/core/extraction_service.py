@@ -3,9 +3,7 @@ from __future__ import annotations
 import json
 import os
 import time
-
-from google import genai
-from google.genai import types
+from typing import Any
 
 from ..models.schemas import ExtractedInvoice
 from . import demo_cache
@@ -25,10 +23,10 @@ _PROMPT = (
 )
 
 
-_client: genai.Client | None = None
+_client: Any = None
 
 
-def _get_client() -> genai.Client:
+def _get_client() -> Any:
     # Cached as a module-level singleton (never garbage collected) instead
     # of constructing one per call: a throwaway `genai.Client(...)` with no
     # held reference can be GC'd mid-request — its httpx client gets closed
@@ -36,6 +34,8 @@ def _get_client() -> genai.Client:
     # "Cannot send a request, as the client has been closed."
     global _client
     if _client is None:
+        from google import genai
+
         _client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     return _client
 
@@ -46,6 +46,8 @@ def extract_invoice(file_bytes: bytes, mime_type: str) -> ExtractedInvoice:
     pre-extracted demo cache entry (keyed by file hash) if every live
     attempt fails — so a network hiccup on stage can't sink the demo.
     """
+    from google.genai import types
+
     client = _get_client()
     last_error: Exception | None = None
     for attempt in range(_MAX_ATTEMPTS):

@@ -148,6 +148,56 @@ context/
   implementation.txt            build log: what was done, in what order, verified how
 ```
 
+## CA Platform (Mode 3 — the B2B SaaS for CA firms)
+
+The same compliance brain now also powers a **multi-tenant web app for CA
+firms** — `solution.txt`'s "Mode 3 — CA Platform". Where the WhatsApp bot
+serves one trader, the CA platform lets a firm manage *many* clients from one
+console and drops on top of each client's existing ERP.
+
+```
+frontend/  Next.js 16 — the CA SaaS dashboard
+  /dashboard            firm-wide admin view (portfolio, ITC at risk, health)
+  /clients              every client with live compliance status
+  /clients/[id]         per-client overview + ERP integration key
+  /clients/[id]/invoices  the Invoice Manager (full reconciliation mapping)
+        │  HTTP (fetch)
+        ▼
+backend/ca_platform/   FastAPI router mounted at /ca
+  matching.py   invoice<->2B AND invoice<->invoice mapping (pure Python),
+                reusing core/itc_engine + core/hsn_lookup + recommendation_engine
+  service.py    firm portfolio, per-client reconcile, ERP ingestion, health score
+  store.py      JSON-file persistence (no MongoDB needed — runs out of the box)
+  seed.py       a demo firm with 4 clients exercising every mapping outcome
+  router.py     /ca/* REST endpoints + /ca/integrations/erp/invoices
+```
+
+The Invoice Manager is the headline feature: it takes all of a client's
+invoices plus their GSTR-2B and maps them against each other to surface
+**duplicates**, **missing invoices** (both *missing-from-2B* — ITC blocked —
+and the reverse *missing-in-books*), and **wrong details** (field-by-field
+amount/tax/HSN/date diffs), each with its exact rupee ITC impact. All money
+math is the deterministic `core` engine; no AI computes a figure.
+
+ERP integration is the "tool on top of company software" path: each client is
+issued an API key at onboarding, and their ERP pushes invoices via
+`POST /ca/integrations/erp/invoices` (header `X-API-Key`).
+
+### Run the CA platform
+
+```bash
+# backend (from repo root) — auto-seeds the demo firm on first request
+python -m uvicorn backend.main:app --port 8000
+# the CA platform itself needs no Gemini/Groq/Mongo; those stay optional and
+# are only used by the WhatsApp pipeline and (optionally) reconcile narration.
+
+# frontend
+cd frontend && npm install && npm run dev   # http://localhost:3000
+```
+
+Tests for the new mapping engine live in `backend/tests/test_ca_matching.py`
+and run with the existing suite (`python -m pytest backend/tests -v`).
+
 ## What's deliberately not built
 
 Live GST portal integration, auto-filing of corrections, voice

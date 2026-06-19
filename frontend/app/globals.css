@@ -1,26 +1,271 @@
 @import "tailwindcss";
 
+/* class/attribute based dark mode driven by data-theme on <html> */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ----------------------------------------------------------------- *
+ *  LIGHT THEME (default)
+ * ----------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f5f6f9;
+  --bg-tint: #eef0f6;
+  --surface: #ffffff;
+  --elevated: #f4f5f9;
+  --foreground: #0b1020;
+  --muted: #5a6478;
+  --faint: #8a93a6;
+  --border: #e7e9f0;
+  --border-strong: #d6dae6;
+
+  --brand: #4f46e5;
+  --brand-strong: #4338ca;
+  --brand-soft: #eef0ff;
+  --accent: #7c3aed;
+  --cyan: #0891b2;
+
+  --green: #047857;
+  --green-bg: #e7f6ef;
+  --amber: #b45309;
+  --amber-bg: #fdf2e2;
+  --red: #be123c;
+  --red-bg: #fdeaef;
+  --indigo: #4338ca;
+  --indigo-bg: #ecedff;
+  --slate: #475569;
+  --slate-bg: #eef1f6;
+
+  --ring: rgba(79, 70, 229, 0.35);
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -12px rgba(16, 24, 40, 0.12);
+  --hero-glow-1: rgba(124, 58, 237, 0.18);
+  --hero-glow-2: rgba(79, 70, 229, 0.16);
+  --hero-glow-3: rgba(8, 145, 178, 0.12);
+  --grid-line: rgba(11, 16, 32, 0.04);
+  color-scheme: light;
+}
+
+/* ----------------------------------------------------------------- *
+ *  DARK THEME (contrasting — deep blue-black with luminous accents)
+ * ----------------------------------------------------------------- */
+[data-theme="dark"] {
+  --bg: #07080d;
+  --bg-tint: #0b0d15;
+  --surface: #111320;
+  --elevated: #181b2b;
+  --foreground: #eef1f8;
+  --muted: #97a1b8;
+  --faint: #6b748c;
+  --border: #20243a;
+  --border-strong: #2c3150;
+
+  --brand: #6366f1;
+  --brand-strong: #818cf8;
+  --brand-soft: #171a36;
+  --accent: #a78bfa;
+  --cyan: #22d3ee;
+
+  --green: #34d399;
+  --green-bg: #0c2a22;
+  --amber: #fbbf24;
+  --amber-bg: #2a2110;
+  --red: #fb7185;
+  --red-bg: #2c121d;
+  --indigo: #a5b4fc;
+  --indigo-bg: #1a1d3d;
+  --slate: #aab4cb;
+  --slate-bg: #1a1e30;
+
+  --ring: rgba(129, 140, 248, 0.45);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 40px -16px rgba(0, 0, 0, 0.7);
+  --hero-glow-1: rgba(124, 58, 237, 0.35);
+  --hero-glow-2: rgba(79, 70, 229, 0.30);
+  --hero-glow-3: rgba(34, 211, 238, 0.18);
+  --grid-line: rgba(255, 255, 255, 0.035);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-bg: var(--bg);
+  --color-bg-tint: var(--bg-tint);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-cyan: var(--cyan);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
+  background: var(--bg);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.4s ease, color 0.3s ease;
+}
+
+::selection {
+  background: var(--brand);
+  color: #fff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* ----------------------------------------------------------------- *
+ *  Reusable element styling (so components stay markup-light)
+ * ----------------------------------------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+.badge-green { color: var(--green); background: var(--green-bg); }
+.badge-amber { color: var(--amber); background: var(--amber-bg); }
+.badge-red { color: var(--red); background: var(--red-bg); }
+.badge-indigo { color: var(--indigo); background: var(--indigo-bg); }
+.badge-slate { color: var(--slate); background: var(--slate-bg); }
+
+.hairline { border-color: var(--border); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  transition: transform 0.12s ease, background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.btn:active { transform: translateY(1px) scale(0.99); }
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 6px 18px -8px var(--ring);
+}
+.btn-primary:hover { background: var(--brand-strong); box-shadow: 0 10px 26px -10px var(--ring); }
+.btn-ghost {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--elevated); color: var(--foreground); border-color: var(--border-strong); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  box-shadow: var(--shadow);
+}
+.card-hover { transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease; }
+.card-hover:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+
+.link-underline {
+  background-image: linear-gradient(var(--brand), var(--brand));
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s ease;
+}
+.link-underline:hover { background-size: 100% 1.5px; }
+
+/* gradient text + animated brand gradient */
+.text-gradient {
+  background: linear-gradient(110deg, var(--brand) 0%, var(--accent) 45%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.animate-gradient {
+  background-size: 220% 220%;
+  animation: gradient-pan 8s ease infinite;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* ----------------------------------------------------------------- *
+ *  Motion
+ * ----------------------------------------------------------------- */
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-float { animation: float-y 7s ease-in-out infinite; }
+.animate-pop { animation: pop-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* scroll reveal — starts hidden, .is-visible toggled by IntersectionObserver */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.is-visible { opacity: 1; transform: translateY(0); }
+
+/* skeleton shimmer block */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--elevated);
+  border-radius: 0.5rem;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--foreground) 8%, transparent), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .animate-float, .animate-gradient, .skeleton::after { animation: none; }
 }

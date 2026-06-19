@@ -8,6 +8,11 @@ backend/__pycache__/
 ## Node
 twilio/node_modules/
 twilio/npm-debug.log*
+frontend/node_modules/
+frontend/.next/
+
+## CA platform local JSON store (seeded at runtime)
+backend/ca_platform/data/store.json
 
 ## Env files
 .env
