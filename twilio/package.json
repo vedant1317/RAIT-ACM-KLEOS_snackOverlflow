@@ -1,0 +1,21 @@
+{
+  "name": "munshi-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Munshi WhatsApp channel adapter (Twilio webhook -> backend compliance brain)",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "form-data": "^4.0.1",
+    "groq-sdk": "^0.9.1",
+    "mongoose": "^8.9.5",
+    "twilio": "^5.4.3"
+  }
+}

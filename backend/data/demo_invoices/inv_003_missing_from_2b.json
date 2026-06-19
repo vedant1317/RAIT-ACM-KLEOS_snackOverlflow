@@ -1,0 +1,10 @@
+{
+  "vendor_name": "Kumar Stationers",
+  "vendor_gstin": "19AAACK9988P1Z1",
+  "invoice_number": "INV-3003",
+  "invoice_date": "2026-05-15",
+  "taxable_value": 8000,
+  "gst_rate": 5,
+  "gst_amount": 400,
+  "hsn_code": "1006"
+}

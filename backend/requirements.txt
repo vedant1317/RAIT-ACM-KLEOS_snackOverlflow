@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pandas
+pydantic
+python-dotenv
+pymongo
+python-multipart
+openpyxl
+google-genai
+groq
+pytest

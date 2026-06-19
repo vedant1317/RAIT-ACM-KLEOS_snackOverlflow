@@ -1,0 +1,5 @@
+vendor_gstin,vendor_name,invoice_number,invoice_date,taxable_value,gst_rate,gst_amount,hsn_code
+27AAAPL1234C1Z5,ABC Traders,INV-1001,2026-05-10,20000,18,3600,8517
+27AABCS5678D1Z2,Singh Electricals,INV-2002,2026-05-12,15000,18,2700,8471
+24AABCS1111E1Z9,Sharma Garments,INV-4004,2026-05-18,10000,18,1800,6109
+29AAACK1234P1Z1,Reddy Wholesalers,INV-5005,2026-05-20,6000,12,720,3004

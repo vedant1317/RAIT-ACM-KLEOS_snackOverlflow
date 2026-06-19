@@ -1,0 +1,10 @@
+{
+  "vendor_name": "ABC Traders",
+  "vendor_gstin": "27AAAPL1234C1Z5",
+  "invoice_number": "INV-1001",
+  "invoice_date": "2026-05-10",
+  "taxable_value": 20000,
+  "gst_rate": 18,
+  "gst_amount": 3600,
+  "hsn_code": "8517"
+}

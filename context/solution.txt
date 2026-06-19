@@ -1,0 +1,546 @@
+ere's the full requirements and technical context for **Munshi**, scoped for a demo-ready hackathon prototype. I've kept everything anchored to the happy path you'll actually show on stage, while flagging what to deliberately *defer*.
+
+# Functional Requirements
+
+These are organized by the four pipeline stages, with each requirement marked **[Demo]** (must work for the pitch), **[Stretch]** (build if time), or **[Defer]** (mention in pitch, don't build).
+
+## FR-1: Document Capture & Upload
+
+- **FR-1.1 [Demo]** The trader can upload one or more invoice files (image: JPG/PNG, or PDF) from their phone.
+- **FR-1.2 [Demo]** The trader can upload their GSTR-2B baseline file (CSV or Excel — use a dummy dataset per the Simulation Clause).
+- **FR-1.3 [Demo]** The system shows a clear "processing" state so the trader knows something is happening.
+- **FR-1.4 [Stretch]** The trader can take a photo directly through the app (camera access) rather than uploading.
+- **FR-1.5 [Defer]** WhatsApp integration / forwarding bills directly to a number. *(Pitch as roadmap — it's the real-world ingestion path.)*
+
+## FR-2: Reading & Extraction
+
+- **FR-2.1 [Demo]** The system extracts structured fields from each uploaded invoice: vendor name, vendor GSTIN, invoice number, invoice date, taxable value, GST rate, GST amount, HSN code.
+- **FR-2.2 [Demo]** Extracted data is returned in a consistent structured format (JSON) for downstream use.
+- **FR-2.3 [Demo]** The trader can **review and tap-to-correct** any extracted field before reconciliation (critical — never silently trust a money field).
+- **FR-2.4 [Stretch]** The system flags low-confidence extractions visually (e.g. a field it's unsure about is highlighted for review).
+
+## FR-3: Reconciliation & Diagnosis
+
+- **FR-3.1 [Demo]** The system matches each invoice against the GSTR-2B baseline on GSTIN + invoice number + amount.
+- **FR-3.2 [Demo]** The system detects and categorizes these mismatch types:
+  - Invoice present in trader's records but **missing from GSTR-2B** (supplier hasn't filed → ITC blocked).
+  - **HSN code mismatch** (wrong code vs. the official master).
+  - **Amount/tax difference** between the invoice and the 2B entry.
+  - **Duplicate** invoice entries.
+- **FR-3.3 [Demo]** For each mismatch, the system calculates the **rupee impact** (e.g. "₹2,400 of ITC blocked").
+- **FR-3.4 [Demo]** HSN codes are validated against a bundled official HSN master list (deterministic lookup, not AI).
+- **FR-3.5 [Defer]** Historical trend analysis ("you've lost ₹X over 3 months"). *(Great impact slide, but not core demo.)*
+
+## FR-4: Explanation & Action (the "Munshi" layer)
+
+- **FR-4.1 [Demo]** For each mismatch, the system produces a plain-language explanation covering *what's wrong, why it matters, what to do*.
+- **FR-4.2 [Demo]** Explanations are available in **Hindi** (and English toggle). Lead with the local language.
+- **FR-4.3 [Demo]** The trader sees a clear summary headline (e.g. "You can recover ₹X this month").
+- **FR-4.4 [Stretch]** Voice output — the trader can *hear* each explanation (text-to-speech).
+- **FR-4.5 [Demo]** Each explanation cites the specific bill it refers to (trust + traceability).
+- **FR-4.6 [Defer]** Auto-submission of corrections to the portal. *(Explicitly out of scope — no portal API, and you never want to auto-file. Keep human in control.)*
+
+## FR-5: Cross-Cutting UX Requirements
+
+- **FR-5.1 [Demo]** Interface uses large tap targets, icons alongside text, and minimal English.
+- **FR-5.2 [Demo]** The trader-facing screen shows results, never raw JSON or technical logs.
+- **FR-5.3 [Demo]** The full happy-path flow (upload → review → results) works end-to-end on rehearsed demo data.
+
+---
+
+# Technical Solution & Architecture
+
+## Core architectural principle
+
+The single most important technical decision: **a hybrid AI + deterministic split.**
+
+- **AI (probabilistic)** handles fuzzy human input → reading messy photos, structuring text, phrasing explanations in Hindi.
+- **Deterministic code** handles anything involving money → matching, arithmetic, HSN lookup.
+
+This is what makes the prototype trustworthy. The AI never calculates the rupee figure; the code does, and the AI only narrates it. Make this split explicit in your pitch — it scores on technical complexity because it shows you know *when not* to use AI.
+
+## Suggested stack (hackathon-pragmatic)
+
+**Frontend**
+- React (or Next.js) for a web app, or React Native / Flutter if you want it to feel like a real phone app. For a hackathon, a mobile-styled responsive web app is fastest and demos fine on a phone screen.
+- Why: fast to build, easy to make the trader-facing UI look polished, and you can mock the phone frame for the demo.
+
+**Backend**
+- Python + FastAPI.
+- Why: Python is the natural home for the AI calls and the pandas reconciliation engine in one place; FastAPI is lightweight and fast to stand up. (This also lines up with your existing FastAPI experience.)
+
+**Stage 1+2 — Reading & Extraction**
+- A vision-language model via API: GPT-4o, Gemini, or Claude with vision.
+- Use the model's **structured output / JSON mode / function calling** to force a strict schema.
+- Why VLM over Tesseract: a VLM understands an invoice as a *document* (knows the number near "GSTIN" is the tax ID), handles rotated/blurry photos and tables. Tesseract just dumps characters and breaks on layout. Keep Tesseract as an optional cheap fallback for clean PDFs.
+
+**Stage 3 — Reconciliation Engine**
+- Plain Python with **pandas**. Load both sides into dataframes, do a join/merge on the match keys, classify the diffs.
+- Bundle the **official GST HSN master list** as a local CSV for the HSN validation lookup.
+- Why deterministic: money math must be exact, reproducible, and auditable. No AI here.
+
+**Stage 4 — Explanation Layer**
+- An LLM (same provider as Stage 1 to keep it simple) that receives the *facts* from the reconciliation engine and is prompted to explain them simply in Hindi/English.
+- Multilingual: modern LLMs handle Hindi well natively; pass the target language in the prompt.
+- Optional voice: a text-to-speech API (e.g. Google TTS, or the browser's built-in `speechSynthesis` for a zero-cost demo hack).
+- Why: the LLM only phrases pre-computed facts, so it can't hallucinate numbers.
+
+## Data flow (end to end)
+
+1. Trader uploads invoices + GSTR-2B file → FastAPI endpoint.
+2. Each invoice → VLM → structured JSON (the eight fields).
+3. JSON returned to frontend → trader reviews/corrects → confirmed JSON sent back.
+4. Confirmed invoices + GSTR-2B → pandas reconciliation → list of categorized mismatches with rupee impact, each validated against the HSN master.
+5. Mismatch facts → LLM → plain-language Hindi/English explanations.
+6. Frontend renders the trader-facing results screen (summary headline + per-bill explanations + optional voice).
+
+## Demo-critical technical notes
+
+- **Pre-generate clean dummy GSTR-2B datasets** (CSV/Excel) per the Simulation Clause — don't fight real portal downloads.
+- **Seed deliberate mismatches** in your demo data (one wrong HSN, one missing invoice, one amount diff) so the tool has something dramatic to catch live.
+- **Cache / pre-process the demo invoices** if VLM latency is slow on stage — have a fallback of pre-extracted JSON so a network hiccup doesn't kill the demo.
+- **Keep the reconciliation logic dead simple** for the demo: exact-match joins are fine; fuzzy matching is a stretch goal.
+
+## What to deliberately NOT build (and why)
+
+- **Live GST portal integration** — APIs aren't available to third parties; the Simulation Clause exists precisely so you don't need this.
+- **Auto-filing corrections** — you never want to auto-submit someone's taxes; keep the human in control.
+- **Scale/cost optimization** (caching, batching, OCR fallback routing) — real production concerns, irrelevant for a single rehearsed demo. Mention them as roadmap.
+- **Full multilingual coverage** — Hindi + English is enough to prove the concept; don't spread thin across regional languages.
+
+---
+
+Want me to add all of this into `context.md` as a new section, or keep it separate? And I can draft the actual reconciliation logic (the pandas matching + mismatch classification) as starter code if you want a head start on the core engine — that's the part that needs to provably work for the demo.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Now we're designing this like a product ecosystem, not a collection of features.
+The biggest mistake you can make is having three separate products.
+Instead, think:
+ONE COMPLIANCE BRAIN
+│
+▼
+Unified GST Intelligence Layer
+┌────────────────────────────────────┐
+│ OCR & Document Understanding │
+│ Invoice Intelligence Engine │
+│ Reconciliation Engine │
+│ Compliance Rule Engine │
+│ ITC Calculation Engine │
+│ Recommendation Engine │
+│ Supplier Intelligence Engine │
+│ Forecasting Engine │
+│ Workflow & Resolution Engine │
+│ Knowledge Base + LLM Layer │
+└────────────────────────────────────┘
+│ │ │
+▼ ▼ ▼
+WhatsApp MSME Dashboard CA Platform
+SHARED BACKEND PIPELINE
+Every mode eventually feeds into the same pipeline.
+Invoice / Receipt / PDF / Scan
+│
+▼
+Document Processing
+│
+▼
+OCR + Vision Model
+│
+▼
+Field Extraction
+│
+▼
+Structured Invoice Record
+│
+▼
+Validation Engine
+│
+▼
+Invoice Repository
+│
+▼
+GSTR-2B Upload
+│
+▼
+Reconciliation Engine
+│
+▼
+Issue Detection Engine
+│
+▼
+ITC Impact Engine
+│
+▼
+Recommendation Engine
+│
+▼
+Workflow Engine
+Every mode consumes this output differently.
+MODE 1 — WHATSAPP (AUTOMATION)
+User
+Trader
+Kirana Owner
+Small MSME
+Goal:
+Don't make me learn GST.
+Just tell me what to do.
+COMPLETE USER JOURNEY
+Stage 1 — Invoice Capture
+Supplier sends invoice
+│
+▼
+Trader forwards to WhatsApp Bot
+Supported:
+Image
+PDF
+Receipt
+Scanned Invoice
+MVP:
+Invoice Upload
+Stage 2 — AI Understanding
+Document
+│
+▼
+OCR
+│
+▼
+Invoice Intelligence
+Extract:
+GSTIN
+Supplier
+Invoice Number
+Tax Value
+HSN
+Date
+MVP:
+Invoice Understanding
+Stage 3 — Confirmation
+Bot replies:
+Invoice Processed
+Supplier:
+ABC Traders
+GST Amount:
+₹4200
+Stage 4 — Compliance Check
+User uploads:
+GSTR-2B
+↓
+Reconciliation Engine
+Checks:
+Missing Invoice
+Duplicate Invoice
+GSTIN Mismatch
+HSN Mismatch
+Tax Mismatch
+MVP:
+Reconciliation
+Stage 5 — Money Translation
+Instead of:
+HSN mismatch
+Bot says:
+Potential ITC Loss
+₹2400
+MVP:
+ITC Impact Calculator
+Stage 6 — Human-Friendly Explanation
+This invoice is missing from GSTR-2B.
+You may lose ₹2400.
+MVP:
+Plain Language Explanation
+Stage 7 — Recommended Fix
+Contact supplier ABC.
+MVP:
+Recommendation Engine
+NOVELTY LAYER
+Now the bot becomes proactive.
+Auto Supplier Follow-Up
+Issue Found
+│
+▼
+Generate Supplier Message
+│
+▼
+One Tap Send
+Novelty:
+Auto Supplier Communication
+Resolution Tracker
+Issue Detected
+│
+▼
+Supplier Contacted
+│
+▼
+Awaiting Update
+│
+▼
+Invoice Corrected
+│
+▼
+Issue Resolved
+Novelty:
+Resolution Lifecycle Tracking
+Voice GST Assistant
+Voice Query
+│
+▼
+Speech To Text
+│
+▼
+Compliance Query
+│
+▼
+Voice Response
+Novelty:
+Voice Assistant
+Monthly Compliance Digest
+Every month:
+Invoices Processed
+Issues Found
+Recoverable ITC
+Pending Suppliers
+Novelty:
+Automated Digest
+WhatsApp Outcome
+Upload
+↓
+Detect
+↓
+↓
+Fix
+Explain
+↓
+Track
+MODE 2 — MSME DASHBOARD (INTELLIGENCE)
+User
+Business Owner
+Accounts Team
+Operations Manager
+Goal:
+Understand
+Monitor
+Optimize
+COMPLETE USER JOURNEY
+Stage 1 — Centralized Data Hub
+Invoices
+GSTR-2B
+WhatsApp Data
+↓
+Business Repository
+MVP
+Stage 2 — Compliance Command Center
+Dashboard:
+Total Invoices
+Issues Found
+Recoverable ITC
+Blocked ITC
+Pending Actions
+MVP
+Stage 3 — Supplier Center
+Supplier A
+Supplier B
+Supplier C
+Each supplier:
+Invoices
+Mismatch Count
+Pending Issues
+MVP
+Stage 4 — Recommendation Center
+Fix Supplier A
+Potential Recovery:
+₹7200
+MVP
+Stage 5 — Reports
+Monthly Compliance Report
+MVP
+NOVELTY LAYER
+GST Health Score
+Health Score
+87/100
+Novelty
+Compliance Trends
+Jan
+Feb
+Mar
+Apr
+Trend analysis.
+Novelty
+Supplier Reliability Score
+ABC Traders
+43/100
+Novelty
+Historical behavior.
+Supplier Risk Forecasting
+Supplier ABC
+Risk of mismatch next month:
+High
+Novelty
+Future prediction.
+Predictive ITC Leakage
+Expected ITC Loss
+₹6300
+Novelty
+What-If Simulator
+Fix Supplier A
+Fix Supplier C
+↓
+Potential Recovery
+₹11400
+Novelty
+AI Compliance Copilot
+User asks:
+Why did ITC decrease?
+↓
+AI answers.
+Novelty
+Supplier Action Center
+Supplier
+│
+▼
+View Issue
+│
+▼
+Generate Reminder
+│
+▼
+Track Resolution
+Novelty
+Alert Engine
+Projected ITC Loss > Threshold
+↓
+Send Alert
+Novelty
+MSME Outcome
+Monitor
+↓
+Analyze
+↓
+Predict
+↓
+Optimize
+MODE 3 — CA PLATFORM (SCALE)
+User
+CA Firm
+GST Consultant
+Audit Team
+Goal:
+Handle More Clients
+Reduce Review Effort
+Increase Productivity
+COMPLETE USER JOURNEY
+Stage 1 — Client Onboarding
+Client A
+Client B
+Client C
+MVP
+Stage 2 — Client Data Collection
+Invoices
+GSTR-2B
+Compliance History
+MVP
+Stage 3 — AI Reconciliation
+Client Data
+│
+▼
+Issue Detection
+MVP
+Stage 4 — Client Dashboard
+Issues
+Recoverable ITC
+Pending Cases
+Compliance Status
+MVP
+Stage 5 — Client Advisory Report
+AI Generated Advisory
+MVP
+Stage 6 — Audit Trail
+Every Action Logged
+MVP
+NOVELTY LAYER
+AI Pre-Audit Engine
+10000 Invoices
+│
+▼
+120 Risky Cases
+Novelty
+Portfolio Risk Dashboard
+All Clients
+│
+▼
+Firm-Wide Risk View
+Novelty
+Client Prioritization Engine
+Rank Clients
+By Financial Exposure
+Novelty
+Auto Advisory Generator
+Client Report
+Generated Automatically
+Novelty
+Agentic Case Management
+Issue
+↓
+Case
+↓
+Assignment
+↓
+Follow-Up
+↓
+Closure
+Novelty
+Team Collaboration Layer
+Junior Analyst
+Case
+↓
+↓
+↓
+Senior Reviewer
+Partner Approval
+Novelty
+Bulk Advisory Engine
+50 Clients
+│
+▼
+Generate Reports
+│
+▼
+Send Advisories
+Novelty
+Compliance Knowledge Graph
+Supplier
+↓
+Invoice
+↓
+Mismatch
+↓
+ITC Impact
+Novelty
+Root-cause visualization.
+FINAL PITCH STORY
+The entire platform can be summarized in one slide:
+TRADER
+Upload → Detect → Fix → Track
+MSME
+Monitor → Analyze → Predict → Optimize
+CA
+Review → Prioritize → Delegate → Scale
+And the killer line for judges:
+Most GST tools help users file returns.
+We help them recover money,
+prevent losses,
+and automate compliance.
+The same AI brain serves
+a trader on WhatsApp,
+an MSME on a dashboard,
+and a CA managing hundreds of clients.
+This version includes every MVP and novelty feature we identified, with each feature having a clear place in the end-to-end flow rather
+than feeling like an isolated add-on.

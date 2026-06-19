@@ -1,0 +1,18 @@
+## Python
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+## Node
+twilio/node_modules/
+twilio/npm-debug.log*
+
+## Env files
+.env
+**/.env
+!**/.env.example
+
+## OS
+.DS_Store

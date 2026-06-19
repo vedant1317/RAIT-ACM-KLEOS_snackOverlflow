@@ -1,0 +1,10 @@
+{
+  "vendor_name": "Reddy Wholesalers",
+  "vendor_gstin": "29AAACK1234P1Z1",
+  "invoice_number": "INV-5005",
+  "invoice_date": "2026-05-20",
+  "taxable_value": 6000,
+  "gst_rate": 12,
+  "gst_amount": 720,
+  "hsn_code": "3004"
+}

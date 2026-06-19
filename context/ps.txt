@@ -1,0 +1,24 @@
+The CA in Your Pocket That Does Not Exist
+BACKGROUND
+India has 1.4 crore GST-registered MSMEs. A kirana store owner in Lucknow receives 500 to 2,000
+invoices per month via WhatsApp images, printed digital invoices, machine-generated receipts, and
+scanned PDFs. They currently pay 15,000 to 40,000 rupees per month to a chartered accountant who
+manually enters this data into GST portals. The CA's real value is not data entry. It is knowing that a
+specific invoice carries the wrong HSN code and that fixing it will unlock 2,400 rupees in blocked
+Input Tax Credit this month.
+THE PROBLEM
+The GST portal offers no diagnostic tool that explains what is mismatched, why it matters, and what
+action to take in plain language. A small trader who tries to file independently misses ITC claims they
+are legally entitled to and loses real money every month. The core issue is an unstructured data
+paradox coupled with a language barrier. The reality of a small business is physical and messy while
+government compliance is digital and rigidly structured. Traders lack a bridge to translate their daily
+commercial artifacts into actionable compliance realities without paying a professional gatekeeper.
+CONSTRAINTS
+–
+–
+–
+GST portal backend APIs are not available to third-party developers.
+The target user has a smartphone but limited comfort with English interfaces.
+Output must be directly actionable by the trader without requiring professional interpretation.
+Simulation Clause: The trader's own GSTR-2B export, which any registered taxpayer can
+download directly from the portal as a PDF or spreadsheet, is a valid and available baseline. 

@@ -1,0 +1,10 @@
+{
+  "vendor_name": "Singh Electricals",
+  "vendor_gstin": "27AABCS5678D1Z2",
+  "invoice_number": "INV-2002",
+  "invoice_date": "2026-05-12",
+  "taxable_value": 15500,
+  "gst_rate": 18,
+  "gst_amount": 2790,
+  "hsn_code": "8471"
+}

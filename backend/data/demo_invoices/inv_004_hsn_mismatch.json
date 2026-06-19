@@ -1,0 +1,10 @@
+{
+  "vendor_name": "Sharma Garments",
+  "vendor_gstin": "24AABCS1111E1Z9",
+  "invoice_number": "INV-4004",
+  "invoice_date": "2026-05-18",
+  "taxable_value": 10000,
+  "gst_rate": 18,
+  "gst_amount": 1800,
+  "hsn_code": "6109"
+}
