@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import { caApi } from '../api/client';
+import { useGSTTickerData } from '../hooks/useGSTTickerData';
 
 const RATING_COLOR = { red: '#ef4444', yellow: '#eab308', green: '#10b981' };
 
@@ -94,6 +95,20 @@ export default function VendorRiskGraphPage({ onBack }) {
     return { supplierCount: suppliers.length, red, yellow, totalRupeeAtRisk };
   }, [graphData]);
 
+  const { usdInr, fetchTime, deadlines, slabs, facts } = useGSTTickerData();
+
+  const riskTickerItems = useMemo(() => {
+    const items = [];
+    if (usdInr) items.push({ text: `USD/INR  \u20b9${usdInr}${fetchTime ? `  (${fetchTime})` : ''}`, cls: 'ticker-item ticker-item--live' });
+    const { period, gstr1, gstr3b } = deadlines;
+    const dc = (d) => d.days <= 5 ? 'ticker-item ticker-item--urgent' : 'ticker-item ticker-item--deadline';
+    items.push({ text: `${gstr1.label} (${period})  Due ${gstr1.date}  \u2014  ${gstr1.days}d left`, cls: dc(gstr1) });
+    items.push({ text: `${gstr3b.label} (${period})  Due ${gstr3b.date}  \u2014  ${gstr3b.days}d left`, cls: dc(gstr3b) });
+    for (const s of slabs) items.push({ text: `GST ${s.rate}  ${s.desc}`, cls: 'ticker-item ticker-item--rate' });
+    for (const f of facts) items.push({ text: `${f.label}:  ${f.value}`, cls: 'ticker-item ticker-item--fact' });
+    return items;
+  }, [usdInr, fetchTime, deadlines, slabs, facts]);
+
   return (
     <div className="risk-graph-page">
       <nav className="db-navbar">
@@ -132,6 +147,24 @@ export default function VendorRiskGraphPage({ onBack }) {
       </div>
 
       {statusMsg && <div className="db-status-banner">{statusMsg}</div>}
+
+      {/* ── Live Ticker (GST rates, filing deadlines, live FX) ── */}
+      <div className="db-ticker">
+        <div className="db-ticker-live-label">
+          <span className="db-ticker-live-dot" />
+          LIVE
+        </div>
+        <div className="db-ticker-track">
+          <div className="db-ticker-content">
+            {riskTickerItems.map((t, i) => <span key={i} className={t.cls}>{t.text}</span>)}
+            {riskTickerItems.map((t, i) => <span key={`r-${i}`} className={t.cls}>{t.text}</span>)}
+          </div>
+          <div className="db-ticker-content">
+            {riskTickerItems.map((t, i) => <span key={`b-${i}`} className={t.cls}>{t.text}</span>)}
+            {riskTickerItems.map((t, i) => <span key={`c-${i}`} className={t.cls}>{t.text}</span>)}
+          </div>
+        </div>
+      </div>
 
       <div className="risk-graph-body">
         <div className="risk-graph-canvas-wrap">

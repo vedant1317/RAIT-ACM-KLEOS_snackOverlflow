@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Typewriter from '../Typewriter';
 import { caApi, clientApi } from '../../api/client';
+import { useGSTTickerData } from '../../hooks/useGSTTickerData';
 
 const STATUS_FILTERS = ['All', 'Wrong details', 'Duplicates', 'Missing from 2B', 'Missing in books', 'Matched'];
 
@@ -311,18 +312,54 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
   const itcStillOpen = issuesSummary?.itc_still_open ?? openIssuesFallbackTotal(issues);
   const healthScore = summary?.health_score ?? 100;
 
-  // Live ticker: real GST-rate buckets from this client's own invoices, not random data.
-  const tickerBuckets = useMemo(() => {
+  // ── External + computed ticker data ────────────────────────────────────────
+  const { usdInr, fetchTime, deadlines, slabs, facts } = useGSTTickerData();
+
+  // Live ticker: combines live-fetched rates, computed deadlines, GST slabs,
+  // compliance constants, and this client's own computed ITC numbers.
+  const allTickerItems = useMemo(() => {
+    const items = [];
+
+    // 1. Live USD/INR (fetched from open.er-api.com)
+    if (usdInr) {
+      items.push({ text: `USD/INR  ₹${usdInr}${fetchTime ? `  (${fetchTime})` : ''}`, cls: 'ticker-item ticker-item--live' });
+    }
+
+    // 2. GST filing deadlines — colour shifts red when ≤ 5 days away
+    const { period, gstr1, gstr3b, gstr2b } = deadlines;
+    const deadlineClass = (d) => d.days <= 5 ? 'ticker-item ticker-item--urgent' : 'ticker-item ticker-item--deadline';
+    items.push({ text: `${gstr1.label} (${period})  Due ${gstr1.date}  —  ${gstr1.days}d left`, cls: deadlineClass(gstr1) });
+    items.push({ text: `${gstr3b.label} (${period})  Due ${gstr3b.date}  —  ${gstr3b.days}d left`, cls: deadlineClass(gstr3b) });
+    items.push({ text: `${gstr2b.label} ${gstr2b.note}  ${gstr2b.date}`, cls: 'ticker-item ticker-item--deadline' });
+
+    // 3. GST rate slabs
+    for (const s of slabs) {
+      items.push({ text: `GST ${s.rate}  ${s.desc}`, cls: 'ticker-item ticker-item--rate' });
+    }
+
+    // 4. Compliance facts (ITC interest, late fees, thresholds)
+    for (const f of facts) {
+      items.push({ text: `${f.label}:  ${f.value}`, cls: 'ticker-item ticker-item--fact' });
+    }
+
+    // 5. Client-specific live numbers (ITC buckets from their invoices)
     const byRate = {};
     for (const row of invoiceRows) {
       const rate = row.gstRate != null ? `${row.gstRate}%` : 'Unrated';
       byRate[rate] = (byRate[rate] || 0) + row.gst;
     }
-    const entries = Object.entries(byRate).map(([rate, amount]) => `GST @ ${rate}: ₹${inr(amount)}`);
-    entries.push(`Total ITC at risk: ₹${inr(summary?.itc_at_risk)}`);
-    entries.push(`Health Score: ${healthScore}/100`);
-    return entries.length > 0 ? entries : ['No invoices yet — send a bill on WhatsApp to see live numbers here.'];
-  }, [invoiceRows, summary, healthScore]);
+    for (const [rate, amount] of Object.entries(byRate)) {
+      items.push({ text: `Your GST @ ${rate}:  ₹${inr(amount)}`, cls: 'ticker-item ticker-item--client' });
+    }
+    if (summary?.itc_at_risk) {
+      items.push({ text: `ITC at risk:  ₹${inr(summary.itc_at_risk)}`, cls: 'ticker-item ticker-item--client' });
+    }
+    items.push({ text: `Health Score:  ${healthScore}/100`, cls: 'ticker-item ticker-item--client' });
+
+    return items.length > 0
+      ? items
+      : [{ text: 'No invoices yet — send a bill on WhatsApp to see live numbers here.', cls: 'ticker-item' }];
+  }, [usdInr, fetchTime, deadlines, slabs, facts, invoiceRows, summary, healthScore]);
 
   async function handleFileSelected(kind, file) {
     if (!file) return;
@@ -559,16 +596,20 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
         <div className="db-status-banner">{loadError || statusMsg}</div>
       )}
 
-      {/* ── Live Ticker (real GST buckets from this client's own data) ── */}
+      {/* ── Live Ticker (GST rates, filing deadlines, live FX, client ITC) ── */}
       <div className="db-ticker">
+        <div className="db-ticker-live-label">
+          <span className="db-ticker-live-dot" />
+          LIVE
+        </div>
         <div className="db-ticker-track">
           <div className="db-ticker-content">
-            {tickerBuckets.map((t, i) => <span key={i} className="ticker-item">{t}</span>)}
-            {tickerBuckets.map((t, i) => <span key={`r-${i}`} className="ticker-item">{t}</span>)}
+            {allTickerItems.map((t, i) => <span key={i} className={t.cls}>{t.text}</span>)}
+            {allTickerItems.map((t, i) => <span key={`r-${i}`} className={t.cls}>{t.text}</span>)}
           </div>
           <div className="db-ticker-content">
-            {tickerBuckets.map((t, i) => <span key={`b-${i}`} className="ticker-item">{t}</span>)}
-            {tickerBuckets.map((t, i) => <span key={`c-${i}`} className="ticker-item">{t}</span>)}
+            {allTickerItems.map((t, i) => <span key={`b-${i}`} className={t.cls}>{t.text}</span>)}
+            {allTickerItems.map((t, i) => <span key={`c-${i}`} className={t.cls}>{t.text}</span>)}
           </div>
         </div>
       </div>

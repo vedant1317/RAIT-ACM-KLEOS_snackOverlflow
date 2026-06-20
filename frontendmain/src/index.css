@@ -3884,40 +3884,108 @@ code {
   font-weight: 500;
 }
 
-/* ── Ticker Styles ── */
+/* ── Top Ticker ─────────────────────────────────────────────────── */
 .db-ticker {
   width: 100%;
-  background: rgba(16, 185, 129, 0.1);
-  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
-  padding: 8px 0;
+  height: 32px;
+  background: rgba(9, 13, 22, 0.94);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
   overflow: hidden;
   white-space: nowrap;
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.db-ticker-live-label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px 0 14px;
+  border-right: 1px solid rgba(16, 185, 129, 0.25);
+  height: 100%;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #10b981;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.db-ticker-live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: ticker-blink 1.4s ease-in-out infinite;
+}
+
+@keyframes ticker-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
 }
 
 .db-ticker-track {
   display: flex;
   width: max-content;
-  animation: ticker-scroll 20s linear infinite;
+  animation: ticker-scroll 200s linear infinite;
 }
 
 .db-ticker-content {
   display: flex;
+  align-items: center;
 }
 
+/* Base ticker item */
 .ticker-item {
   color: #10b981;
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 11.5px;
   font-weight: 600;
-  margin-right: 50px;
-  letter-spacing: 0.5px;
+  margin-right: 40px;
+  letter-spacing: 0.4px;
+  padding: 0 4px;
+}
+
+/* Filing deadline — amber */
+.ticker-item--deadline {
+  color: #f59e0b;
+}
+
+/* Urgent deadline (≤ 5 days) — red */
+.ticker-item--urgent {
+  color: #ef4444;
+  animation: ticker-blink 1s step-end infinite;
+}
+
+/* Live-fetched data (USD/INR) — sky blue */
+.ticker-item--live {
+  color: #60a5fa;
+}
+
+/* GST rate slabs — green (same as default, stronger) */
+.ticker-item--rate {
+  color: #34d399;
+}
+
+/* Compliance facts (interest, late fees) — slate */
+.ticker-item--fact {
+  color: #94a3b8;
+}
+
+/* Client-specific ITC numbers — soft purple */
+.ticker-item--client {
+  color: #a78bfa;
 }
 
 @keyframes ticker-scroll {
-  0% { transform: translate3d(0, 0, 0); }
+  0%   { transform: translate3d(0, 0, 0); }
   100% { transform: translate3d(-50%, 0, 0); }
 }
 
