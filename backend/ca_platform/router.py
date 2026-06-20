@@ -148,6 +148,31 @@ async def create_portal_account(client_id: str, payload: PortalAccountIn, _user:
     return {"client_id": client_id, "email": payload.email.strip().lower(), "password": raw_password}
 
 
+class ClientUpdateIn(BaseModel):
+    name: str | None = None
+    gstin: str | None = None
+    industry: str | None = None
+    contact_name: str | None = None
+    contact_phone: str | None = None
+    erp_system: str | None = None
+    filing_frequency: str | None = None
+
+
+@router.patch("/clients/{client_id}")
+async def update_client(client_id: str, payload: ClientUpdateIn, _user: dict = Depends(require_ca_auth)) -> dict:
+    """Partial update — used in particular to set ``contact_phone`` to a
+    real WhatsApp number so trader-flow activity on that number mirrors
+    into this client (see ``whatsapp_bridge.py``)."""
+    if not service.store.client_exists(client_id):
+        raise HTTPException(status_code=404, detail="Client not found")
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    for field, value in updates.items():
+        service.store.set_client_field(client_id, field, value)
+    if updates:
+        service.store.log_activity(client_id, "client_updated", f"Updated: {', '.join(sorted(updates))}")
+    return service.get_client(client_id)
+
+
 @router.delete("/clients/{client_id}")
 async def delete_client(client_id: str, _user: dict = Depends(require_ca_auth)) -> dict:
     if not service.delete_client(client_id):

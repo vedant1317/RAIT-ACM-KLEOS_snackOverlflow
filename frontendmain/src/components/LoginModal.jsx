@@ -3,9 +3,11 @@ import { Mail, Lock, Eye, X } from 'lucide-react';
 import Typewriter from './Typewriter';
 import CreateAccount from './CreateAccount';
 
-export default function LoginModal({ onClose, onSuccess, onForgotPassword }) {
+export default function LoginModal({ auth, mode = 'client', onClose, onSuccess, onForgotPassword }) {
   const [showWelcomeCard, setShowWelcomeCard] = useState(false);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // Show Create Account modal
   if (showCreateAccount) {
@@ -47,17 +49,42 @@ export default function LoginModal({ onClose, onSuccess, onForgotPassword }) {
               <X />
             </button>
 
-            <h2 className="modal-title-text">Log in to your account</h2>
+            <h2 className="modal-title-text">
+              {mode === 'admin' ? 'CA Admin Login' : 'Log in to your business dashboard'}
+            </h2>
 
-            <form onSubmit={e => { e.preventDefault(); setShowWelcomeCard(true); }}>
+            <form
+              onSubmit={async e => {
+                e.preventDefault();
+                const ok = await auth.login(email, password);
+                if (ok) {
+                  setPassword('');
+                  setShowWelcomeCard(true);
+                }
+              }}
+            >
               <div className="input-group">
                 <Mail className="input-icon" />
-                <input type="email" placeholder="Email address" required />
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
               </div>
 
               <div className="input-group">
                 <Lock className="input-icon" />
-                <input type="password" placeholder="Password" required />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
                 <Eye className="input-icon-right" />
               </div>
 
@@ -78,7 +105,11 @@ export default function LoginModal({ onClose, onSuccess, onForgotPassword }) {
                 </a>
               </div>
 
-              <button type="submit" className="login-btn">Log In</button>
+              {auth.error && <p className="login-error-text">{auth.error}</p>}
+
+              <button type="submit" className="login-btn" disabled={auth.loading}>
+                {auth.loading ? 'Logging in…' : 'Log In'}
+              </button>
             </form>
 
             <div className="modal-footer">

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ..ca_platform import whatsapp_bridge
 from ..ca_platform.auth import require_service_token
 from ..core import explanation_service
 from ..core.reconciliation_engine import reconcile
@@ -37,6 +38,8 @@ async def run_reconciliation(trader_id: str, language: str = "Hindi") -> dict:
         for m in result.mismatches
     ]
     headline = explanation_service.summary_headline(result.total_recoverable_or_blocked, language=language)
+
+    whatsapp_bridge.mirror_reconcile(trader_id, language="English")
 
     return {
         "trader_id": trader_id,

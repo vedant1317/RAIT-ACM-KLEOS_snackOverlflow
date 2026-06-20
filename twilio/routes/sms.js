@@ -138,6 +138,7 @@ const CONFIRM_WORDS = new Set([
   "हो",
 ]);
 const STATUS_WORDS = new Set(["status", "sthiti", "halat", "स्थिति", "स्टेटस"]);
+const REPORT_WORDS = new Set(["report", "pdf", "monthly report", "gst report", "रिपोर्ट", "पीडीएफ"]);
 const MEDIA_TYPE_BILL_WORDS = new Set(["bill", "invoice", "1", "bil", "बिल"]);
 const MEDIA_TYPE_2B_WORDS = new Set(["gstr2b", "2b", "2", "baseline", "gstr-2b"]);
 const REMIND_PATTERN = /^remind\s+(.+)$/i;
@@ -298,6 +299,13 @@ async function buildTextAction(from, session, body) {
 
   if (STATUS_WORDS.has(lower)) {
     return { reply: await buildStatusReply(from, language) };
+  }
+
+  if (REPORT_WORDS.has(lower)) {
+    return {
+      reply: t(language).reportGenerating,
+      after: () => sendPdfReport(from, language),
+    };
   }
 
   const remindMatch = body.trim().match(REMIND_PATTERN);
@@ -553,6 +561,36 @@ async function buildStatusReply(from, language) {
   } catch (err) {
     console.error("[status] backend call failed:", err.message);
     return t(language).unknown;
+  }
+}
+
+async function sendPdfReport(from, language) {
+  const baseUrl = (process.env.NGROK_URL || "").replace(/\/$/, "");
+  if (!baseUrl) {
+    await sendMessage(from, t(language).reportNeedsPublicUrl, language);
+    return;
+  }
+
+  let pdf;
+  try {
+    pdf = await backendClient.getTraderReport(from);
+  } catch (err) {
+    console.error("[report] backend call failed:", err.message);
+    await sendMessage(from, t(language).reportFailed, language);
+    return;
+  }
+
+  const mediaId = voiceReplyService.cacheMedia(pdf, "application/pdf");
+  try {
+    await twilioClient().messages.create({
+      from: process.env.TWILIO_WHATSAPP_NUMBER,
+      to: from,
+      body: t(language).reportReady,
+      mediaUrl: [`${baseUrl}/media/${mediaId}.pdf`],
+    });
+  } catch (err) {
+    console.error("[report] media send failed:", err.message);
+    await sendMessage(from, t(language).reportSendFailed, language);
   }
 }
 

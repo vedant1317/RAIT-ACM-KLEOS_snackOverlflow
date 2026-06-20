@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
+from ..ca_platform import whatsapp_bridge
 from ..ca_platform.auth import require_service_token
 from ..core.period_utils import derive_period
 from ..db.mongo import get_db
@@ -24,6 +25,7 @@ async def confirm_invoice(trader_id: str, invoice: ExtractedInvoice) -> dict:
         {"$push": {"records": record}},
         upsert=True,
     )
+    whatsapp_bridge.mirror_invoice(trader_id, record)
     return {"trader_id": trader_id, "stored": True}
 
 
@@ -56,5 +58,6 @@ async def confirm_batch(trader_id: str, invoices: list[ExtractedInvoice]) -> dic
             {"$push": {"records": {"$each": records}}},
             upsert=True,
         )
+        whatsapp_bridge.mirror_invoices_batch(trader_id, records)
     needs_review = sum(1 for r in records if r.get("needs_review"))
     return {"trader_id": trader_id, "saved": len(records), "needs_review": needs_review}

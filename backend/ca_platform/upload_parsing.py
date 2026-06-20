@@ -85,7 +85,7 @@ async def read_invoice_records(file: UploadFile, erp_config: dict | None) -> lis
     if filename.lower().endswith(".pdf") or file.content_type == "application/pdf":
         from ..core import gstr2b_parser
 
-        return await asyncio.to_thread(gstr2b_parser.parse_gstr2b_pdf, file_bytes)
+        return await asyncio.to_thread(gstr2b_parser.parse_invoice_batch_pdf, file_bytes)
 
     from . import erp_mapping
 

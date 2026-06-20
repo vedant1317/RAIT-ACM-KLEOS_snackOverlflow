@@ -59,6 +59,11 @@ const STRINGS = {
       `⚠️ Open issues: ${s.issues_open}\n` +
       (s.top_supplier ? `🏷️ Sabse zyada gadbad: ${s.top_supplier}\n` : "") +
       `👉 Next step: ${s.next_action}`,
+    reportGenerating: "📄 Aapka GST PDF report bana raha hoon...",
+    reportReady: "📄 Yeh raha aapka Munshi GST report PDF.",
+    reportFailed: "😟 Report ban nahi payi. Pehle bill aur GSTR-2B bhejkar 'check' chalaiye.",
+    reportSendFailed: "😟 PDF bhejne mein dikkat aa gayi. Thodi der baad dobara 'report' likhiye.",
+    reportNeedsPublicUrl: "⚠️ PDF bhejne ke liye NGROK_URL set hona chahiye. Pehle ngrok start karke webhook update karein.",
     remindUsage: "✍️ Kaunse bill ke liye? 'remind INV-123' jaise likhiye.",
     remindNotFound: (inv) => `😟 Mujhe bill ${inv} nahi mila aapke last check mein. Pehle 'check' likhiye.`,
     remindIntro: "📨 Yeh message supplier ko forward kar sakte hain:\n\n",
@@ -121,6 +126,11 @@ const STRINGS = {
       `⚠️ Open issues: ${s.issues_open}\n` +
       (s.top_supplier ? `🏷️ Sarvadhik gadbad: ${s.top_supplier}\n` : "") +
       `👉 Next step: ${s.next_action}`,
+    reportGenerating: "📄 Tumcha GST PDF report banvat aahe...",
+    reportReady: "📄 Ha tumcha Munshi GST report PDF.",
+    reportFailed: "😟 Report banavta ali nahi. Adhi bill ani GSTR-2B pathvun 'check' chalva.",
+    reportSendFailed: "😟 PDF pathavnyat adchan aali. Thodya velane punha 'report' liha.",
+    reportNeedsPublicUrl: "⚠️ PDF pathavnyasathi NGROK_URL set pahije. Adhi ngrok start karun webhook update kara.",
     remindUsage: "✍️ Konatya bill sathi? 'remind INV-123' asa liha.",
     remindNotFound: (inv) => `😟 Mala bill ${inv} sapadla nahi tumchya last check madhe. Adhi 'check' liha.`,
     remindIntro: "📨 Ha message supplier la forward karu shakta:\n\n",
@@ -185,6 +195,11 @@ const STRINGS = {
       `⚠️ Open issues: ${s.issues_open}\n` +
       (s.top_supplier ? `🏷️ Top problem supplier: ${s.top_supplier}\n` : "") +
       `👉 Next step: ${s.next_action}`,
+    reportGenerating: "📄 Generating your GST PDF report...",
+    reportReady: "📄 Here is your Munshi GST report PDF.",
+    reportFailed: "😟 I couldn't generate the report. Send invoices and GSTR-2B, then run 'check' first.",
+    reportSendFailed: "😟 I couldn't send the PDF. Please try typing 'report' again in a bit.",
+    reportNeedsPublicUrl: "⚠️ To send PDFs, NGROK_URL must be set. Start ngrok and update the webhook first.",
     remindUsage: "✍️ Which invoice? Type something like 'remind INV-123'.",
     remindNotFound: (inv) => `😟 I couldn't find invoice ${inv} in your last check. Type 'check' first.`,
     remindIntro: "📨 You can forward this message to your supplier:\n\n",

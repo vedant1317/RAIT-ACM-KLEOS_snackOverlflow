@@ -6,6 +6,7 @@ import io
 import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
+from ..ca_platform import whatsapp_bridge
 from ..ca_platform.auth import require_service_token
 from ..core.period_utils import derive_period
 from ..db.mongo import get_db
@@ -66,5 +67,6 @@ async def upload_baseline(trader_id: str, file: UploadFile = File(...)) -> dict:
         {"$set": {"trader_id": trader_id, "records": records}},
         upsert=True,
     )
+    whatsapp_bridge.mirror_baseline(trader_id, records)
     needs_review = sum(1 for r in records if r.get("needs_review"))
     return {"trader_id": trader_id, "rows_loaded": len(records), "needs_review": needs_review}

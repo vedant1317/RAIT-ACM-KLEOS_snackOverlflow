@@ -2,7 +2,7 @@ import VerticalBarsNoise from './ui/vertical-bars';
 import HorizontalFlowBars from './ui/horizontal-bars';
 import Dashboard from './ui/Dashboard';
 
-export default function CanvasPage({ canvasView = 'vertical', mode = 'client' }) {
+export default function CanvasPage({ canvasView = 'vertical', mode = 'client', identity, onLogout }) {
   return (
     <div className="canvas-page">
       {/* Translucent animated background */}
@@ -32,7 +32,7 @@ export default function CanvasPage({ canvasView = 'vertical', mode = 'client' })
       <div className="canvas-dim-overlay" />
 
       {/* Dashboard content */}
-      <Dashboard mode={mode} />
+      <Dashboard mode={mode} identity={identity} onLogout={onLogout} />
     </div>
   );
 }

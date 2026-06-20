@@ -65,6 +65,13 @@ async function getTraderContext(traderId) {
   return data;
 }
 
+async function getTraderReport(traderId) {
+  const res = await client.get(`/traders/${encodeURIComponent(traderId)}/report`, {
+    responseType: "arraybuffer",
+  });
+  return Buffer.from(res.data);
+}
+
 module.exports = {
   extractInvoice,
   uploadBaseline,
@@ -74,4 +81,5 @@ module.exports = {
   runReconciliation,
   getTraderSummary,
   getTraderContext,
+  getTraderReport,
 };

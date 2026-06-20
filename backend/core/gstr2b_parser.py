@@ -20,7 +20,7 @@ from ..models.schemas import ExtractedInvoice
 
 _MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
 
-_PROMPT = (
+_GSTR2B_PROMPT = (
     "You are reading a GSTR-2B statement for an Indian GST-registered "
     "business — a tabular government return document (downloaded PDF or a "
     "scanned printout), not a single invoice. Extract every invoice-level "
@@ -31,6 +31,19 @@ _PROMPT = (
     "explanation; otherwise leave needs_review false and review_reason "
     "empty. Do not skip a row just because it looks uncertain — flag it "
     "instead of guessing silently."
+)
+
+_INVOICE_BATCH_PROMPT = (
+    "You are reading a PDF that contains one or more Indian GST invoices/bills "
+    "— either several invoices scanned into one document, or a multi-page "
+    "scan of one invoice. Extract every distinct invoice into the given "
+    "schema with fields: vendor_name, vendor_gstin, invoice_number, "
+    "invoice_date (YYYY-MM-DD), taxable_value, gst_rate, gst_amount, "
+    "hsn_code. If an invoice's values are unclear, smudged, or ambiguous, "
+    "set needs_review to true and fill review_reason with a short "
+    "explanation; otherwise leave needs_review false and review_reason "
+    "empty. Do not skip an invoice just because it looks uncertain — flag "
+    "it instead of guessing silently."
 )
 
 
@@ -57,11 +70,7 @@ def _get_client() -> Any:
     return _client
 
 
-def parse_gstr2b_pdf(file_bytes: bytes) -> list[dict]:
-    """Extract GSTR-2B rows from a PDF into the same 8-field shape the
-    CSV/XLSX fast path produces, each row additionally tagged with
-    ``needs_review``/``review_reason``. Call from a worker thread
-    (``asyncio.to_thread``) — this makes a blocking network call."""
+def _extract(file_bytes: bytes, prompt: str) -> list[dict]:
     from google.genai import types
 
     client = _get_client()
@@ -69,7 +78,7 @@ def parse_gstr2b_pdf(file_bytes: bytes) -> list[dict]:
         model=_MODEL,
         contents=[
             types.Part.from_bytes(data=file_bytes, mime_type="application/pdf"),
-            _PROMPT,
+            prompt,
         ],
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -79,3 +88,18 @@ def parse_gstr2b_pdf(file_bytes: bytes) -> list[dict]:
     data = json.loads(response.text)
     extraction = GSTR2BExtraction.model_validate(data)
     return [row.model_dump(mode="json") for row in extraction.rows]
+
+
+def parse_gstr2b_pdf(file_bytes: bytes) -> list[dict]:
+    """Extract GSTR-2B rows from a PDF into the same 8-field shape the
+    CSV/XLSX fast path produces, each row additionally tagged with
+    ``needs_review``/``review_reason``. Call from a worker thread
+    (``asyncio.to_thread``) — this makes a blocking network call."""
+    return _extract(file_bytes, _GSTR2B_PROMPT)
+
+
+def parse_invoice_batch_pdf(file_bytes: bytes) -> list[dict]:
+    """Same extraction, prompted for a PDF of one-or-more invoices/bills
+    rather than a government GSTR-2B statement — used by the bulk invoice
+    upload routes when the uploaded file is a PDF instead of CSV/XLSX."""
+    return _extract(file_bytes, _INVOICE_BATCH_PROMPT)

@@ -7,6 +7,7 @@ import ForgotPassword from './components/ForgotPassword'
 import CanvasPage from './components/CanvasPage'
 import Typewriter from './components/Typewriter'
 import IntroSequence from './components/IntroSequence'
+import { useAuth } from './hooks/useAuth'
 
 function App() {
   const [presetIndex, setPresetIndex] = useState(0)
@@ -18,6 +19,10 @@ function App() {
   const [canvasView] = useState('vertical')
   const [dashboardMode, setDashboardMode] = useState('client')
   const [showIntro, setShowIntro] = useState(true)
+
+  const caAuth = useAuth('ca')
+  const clientAuth = useAuth('client')
+  const activeAuth = dashboardMode === 'admin' ? caAuth : clientAuth
 
   // DataGridHero states — initialized from first preset
   const [rows, setRows] = useState(PRESETS[0].rows)
@@ -191,6 +196,8 @@ function App() {
       {/* Login Modal */}
       {showLoginModal && !showCanvasPage && (
         <LoginModal
+          auth={activeAuth}
+          mode={dashboardMode}
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => { setShowLoginModal(false); setShowCanvasPage(true); }}
           onForgotPassword={() => { setShowLoginModal(false); setShowForgotPassword(true); }}
@@ -207,7 +214,16 @@ function App() {
 
       {/* Full-Screen Canvas / Dashboard Page */}
       {showCanvasPage && (
-        <CanvasPage canvasView={canvasView} mode={dashboardMode} />
+        <CanvasPage
+          canvasView={canvasView}
+          mode={dashboardMode}
+          identity={activeAuth.identity}
+          onLogout={async () => {
+            await activeAuth.logout()
+            setShowCanvasPage(false)
+            setStarted(false)
+          }}
+        />
       )}
     </div>
     </>
