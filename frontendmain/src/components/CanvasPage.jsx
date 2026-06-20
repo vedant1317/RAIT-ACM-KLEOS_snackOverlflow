@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import VerticalBarsNoise from './ui/vertical-bars';
 import HorizontalFlowBars from './ui/horizontal-bars';
 import Dashboard from './ui/Dashboard';
+import VendorRiskGraphPage from './VendorRiskGraphPage';
 
 export default function CanvasPage({ canvasView = 'vertical', mode = 'client', identity, onLogout }) {
+  const [page, setPage] = useState('dashboard'); // 'dashboard' | 'riskGraph'
+
   return (
     <div className="canvas-page">
       {/* Translucent animated background */}
@@ -31,8 +35,17 @@ export default function CanvasPage({ canvasView = 'vertical', mode = 'client', i
       {/* Dark translucent overlay to dim the canvas */}
       <div className="canvas-dim-overlay" />
 
-      {/* Dashboard content */}
-      <Dashboard mode={mode} identity={identity} onLogout={onLogout} />
+      {/* Page content */}
+      {page === 'riskGraph' ? (
+        <VendorRiskGraphPage onBack={() => setPage('dashboard')} />
+      ) : (
+        <Dashboard
+          mode={mode}
+          identity={identity}
+          onLogout={onLogout}
+          onOpenRiskGraph={mode === 'admin' ? () => setPage('riskGraph') : undefined}
+        />
+      )}
     </div>
   );
 }

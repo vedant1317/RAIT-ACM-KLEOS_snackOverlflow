@@ -113,6 +113,8 @@ export const caApi = {
   getTimeline: (id, params) => request('ca', `/ca/clients/${id}/timeline${qs(params)}`),
   simulate: (id, payload) => request('ca', `/ca/clients/${id}/simulate`, { method: 'POST', body: payload }),
   downloadReport: (id, period) => downloadFile('ca', `/ca/clients/${id}/reports/monthly${qs({ period })}`, `gst-report-${id}-${period || 'latest'}.pdf`),
+  syncRiskGraph: () => request('ca', '/ca/graph/sync', { method: 'POST' }),
+  getRiskGraph3D: (params) => request('ca', `/ca/graph/3d${qs(params)}`),
 };
 
 // --------------------------------------------------------------------------- //

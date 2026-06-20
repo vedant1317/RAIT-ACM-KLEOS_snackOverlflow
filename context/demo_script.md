@@ -49,6 +49,10 @@ separate mocked-up screen, it's the *same* backend.
    a demo beat, see Act 1 step 1).
 6. Log into the portal as CA admin once to confirm it loads:
    `admin@sharma-associates.example` / `admin1234`.
+7. Open the Risk Graph page once and click **"Sync from Neo4j"** so the
+   graph isn't doing its very first sync live in front of judges (the demo
+   will have you sync again after the WhatsApp segment anyway — that second
+   sync is the one that matters).
 
 ---
 
@@ -148,7 +152,27 @@ reconciling each business manually in spreadsheets."*
    different health score. Proves real multi-tenancy, not a single
    hard-coded view with a relabeled header.
 
-8. *(Optional, if time remains)* **Log out, log back in as "Vendor" mode**
+8. **Click "🌐 Risk Graph" in the navbar (the USP moment).** A full-screen 3D
+   force-directed graph opens — every client and every supplier across the
+   firm as nodes, every transacting relationship as an edge. Click
+   **"Sync from Neo4j"** once to rebuild it from the latest data (including
+   whatever you just sent over WhatsApp in Act 1). Then:
+   - Rotate/zoom the graph — it's real Three.js/WebGL, not an image.
+   - Point out the legend: red/yellow/green node color = supplier risk
+     rating, node size = exposure, edge thickness = ₹ at risk, **flowing red
+     particles along an edge = money currently at risk on that
+     relationship** — self-explanatory without narration.
+   - Click a red supplier node → the side panel shows its risk score, risk
+     level, clients affected, and total/unresolved ITC at risk — computed by
+     the rule-based forecasting engine, not hard-coded.
+   - Switch the client dropdown to scope the graph to one client's own
+     supplier neighborhood.
+   - Say: *"This is a real Neo4j graph database, synced from MongoDB on
+     demand — not a static diagram. The same vendor-risk data the portfolio
+     summarizes in a table, here you can explore as a network — which is how
+     a CA actually thinks about supplier risk across a whole portfolio."*
+
+9. *(Optional, if time remains)* **Log out, log back in as "Vendor" mode**
    with `cli_verma@demo.munshi.local` / `demo1234` — show the *same client*
    now sees only their own data through a completely separate self-service
    login. Say: *"The CA's clients don't have to wait for their accountant to
@@ -160,8 +184,8 @@ reconciling each business manually in spreadsheets."*
 
 | Criteria | What to say |
 |---|---|
-| **Innovation** | "One compliance brain, three surfaces — WhatsApp, a CA portfolio dashboard, and a client self-service portal — all reading and writing the same reconciliation engine." |
-| **Technical complexity** | "Gemini Vision for extraction with deterministic confidence scoring, Groq for multilingual narration/voice/Q&A, a pandas-free deterministic reconciliation engine, vendor risk forecasting, two independent auth systems, and a live bridge that mirrors WhatsApp activity into the CA platform in real time." |
+| **Innovation** | "One compliance brain, three surfaces — WhatsApp, a CA portfolio dashboard, and a client self-service portal — all reading and writing the same reconciliation engine, plus a 3D graph-database view of supplier risk no other GST tool shows." |
+| **Technical complexity** | "Gemini Vision for extraction with deterministic confidence scoring, Groq for multilingual narration/voice/Q&A, a pandas-free deterministic reconciliation engine, rule-based vendor risk forecasting synced into a real Neo4j graph database and rendered in 3D WebGL, two independent auth systems, and a live bridge that mirrors WhatsApp activity into the CA platform in real time." |
 | **Execution & functionality** | "Everything you just saw is a real Mongo-backed API call — there's no mocked happy path. The invoice you photographed on WhatsApp is the same document object the portal just rendered." |
 | **UX** | "WhatsApp-first because that's where a kirana owner already lives — Hindi by default, tap targets instead of typing, voice notes instead of forms. The portal is money-first: the rupee impact is the biggest thing on every card." |
 | **Presentation** | Lead with the WhatsApp→Portal live sync moment — it's the one beat that proves this isn't a demo of two unrelated screens. |
@@ -177,9 +201,10 @@ text + voice, deterministic reconciliation + ITC impact + HSN validation,
 issue lifecycle (open → chasing → resolved), supplier correction drafts, PDF
 reports (WhatsApp *and* portal), CA multi-client portfolio with a live
 WhatsApp↔portal bridge, a separate client self-service login, vendor
-scorecards + rule-based risk forecasting, smart alerts, reminders-due,
-compliance health score, "money unlocked" tracking, a static GST compliance
-timeline.
+scorecards + rule-based risk forecasting, a real Neo4j-backed 3D
+supplier-risk graph synced from MongoDB on demand, smart alerts,
+reminders-due, compliance health score, "money unlocked" tracking, a static
+GST compliance timeline.
 
 **Frame as roadmap, not "watch me click it":**
 - One-tap *sending* the correction message straight to the supplier's

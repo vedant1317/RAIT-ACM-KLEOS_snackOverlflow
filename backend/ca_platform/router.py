@@ -377,6 +377,7 @@ from .simulator import router as _simulator_router  # noqa: E402
 from .risk_forecast import router as _forecast_router  # noqa: E402
 from .knowledge_graph import router as _graph_router  # noqa: E402
 from .erp_mapping import router as _erp_mapping_router  # noqa: E402
+from .risk_graph import router as _risk_graph_router  # noqa: E402
 
 router.include_router(_vendor_router)
 router.include_router(_alerts_router)
@@ -387,3 +388,4 @@ router.include_router(_simulator_router)
 router.include_router(_forecast_router)
 router.include_router(_graph_router)
 router.include_router(_erp_mapping_router)
+router.include_router(_risk_graph_router)

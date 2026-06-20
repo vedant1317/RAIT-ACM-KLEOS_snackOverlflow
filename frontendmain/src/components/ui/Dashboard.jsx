@@ -123,7 +123,7 @@ function fieldDiffers(diffs, field) {
 }
 
 /* ─── Main Dashboard ─────────────────────────────────────── */
-export default function Dashboard({ mode = 'client', identity, onLogout }) {
+export default function Dashboard({ mode = 'client', identity, onLogout, onOpenRiskGraph }) {
   const isAdmin = mode === 'admin';
   const overlayRef = useRef(null);
   const [spotlightIdx, setSpotlightIdx] = useState(-1);
@@ -494,6 +494,11 @@ export default function Dashboard({ mode = 'client', identity, onLogout }) {
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
             </svg>
           </div>
+          {onOpenRiskGraph && (
+            <button type="button" className="navbar-action-btn navbar-action-btn-highlight" onClick={onOpenRiskGraph} title="3D supplier risk graph">
+              🌐 Risk Graph
+            </button>
+          )}
           {onLogout && (
             <button type="button" className="navbar-action-btn" onClick={onLogout} title="Log out">Log out</button>
           )}
