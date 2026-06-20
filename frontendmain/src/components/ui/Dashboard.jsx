@@ -48,6 +48,14 @@ function inr(value) {
   return n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
 }
 
+// Used only if the backend's issues_summary() call fails — a same-shape
+// client-side approximation so the UI degrades gracefully instead of blanking.
+function openIssuesFallbackTotal(issues) {
+  return issues
+    .filter((i) => i.status === 'open' || i.status === 'chasing')
+    .reduce((sum, i) => sum + (i.rupee_impact || 0), 0);
+}
+
 /* ─── SVG Line Chart ─────────────────────────────────────── */
 function LineChart({ data, color, gradientId, yMin = 0, yMax = 300 }) {
   if (data.length < 2) return <div className="chart-loading">Collecting data…</div>;
@@ -146,6 +154,7 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
   const [summary, setSummary] = useState(null);
   const [historyRuns, setHistoryRuns] = useState([]);
   const [issues, setIssues] = useState([]);
+  const [issuesSummary, setIssuesSummary] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [remindersDue, setRemindersDue] = useState([]);
   const [timelineDaysLeft, setTimelineDaysLeft] = useState(null);
@@ -164,6 +173,7 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
         getReconciliationHistory: () => caApi.getReconciliationHistory(id),
         runReconcile: () => caApi.runReconcile(id),
         listIssues: () => caApi.listIssues(id),
+        getIssuesSummary: () => caApi.getIssuesSummary(id),
         setIssueStatus: (payload) => caApi.setIssueStatus(id, payload),
         draftMessage: (payload) => caApi.draftMessage(id, payload),
         getTimeline: () => caApi.getTimeline(id),
@@ -178,6 +188,7 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
       getReconciliationHistory: () => clientApi.getReconciliationHistory(),
       runReconcile: () => clientApi.runReconcile(),
       listIssues: () => clientApi.listIssues(),
+      getIssuesSummary: () => clientApi.getIssuesSummary(),
       setIssueStatus: (payload) => clientApi.setIssueStatus(payload),
       draftMessage: (payload) => clientApi.draftMessage(payload),
       getTimeline: () => clientApi.getTimeline(),
@@ -201,17 +212,19 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
     setLoading(true);
     setLoadError('');
     try {
-      const [clientData, recon, history, issuesData] = await Promise.all([
+      const [clientData, recon, history, issuesData, issuesSummaryData] = await Promise.all([
         scopedApi.getClient(),
         scopedApi.getReconciliation(),
         scopedApi.getReconciliationHistory(),
         scopedApi.listIssues(),
+        scopedApi.getIssuesSummary().catch(() => null),
       ]);
       setProfile(clientData);
       setSummary(clientData.summary || recon.summary);
       setReconRows(recon.rows || []);
       setHistoryRuns(Array.isArray(history) ? history : []);
       setIssues(unwrapList(issuesData));
+      setIssuesSummary(issuesSummaryData);
 
       if (isAdmin) {
         caApi.listAlerts({ acked: false }).then((d) => setAlerts(unwrapList(d))).catch(() => {});
@@ -291,7 +304,11 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
   const itcTrendMax = Math.max(...itcTrend, 1000) * 1.15;
   const issuesTrendMax = Math.max(...issuesTrend, 5) * 1.3;
 
-  const moneyUnlocked = issues.filter((i) => i.status === 'resolved').reduce((sum, i) => sum + (i.rupee_impact || 0), 0);
+  // Prefer the backend's canonical issues_summary() (itc_recovered/itc_still_open) —
+  // it's the same number the simulator and reports use. Fall back to a
+  // client-side reduce only if that call failed.
+  const moneyUnlocked = issuesSummary?.itc_recovered ?? issues.filter((i) => i.status === 'resolved').reduce((sum, i) => sum + (i.rupee_impact || 0), 0);
+  const itcStillOpen = issuesSummary?.itc_still_open ?? openIssuesFallbackTotal(issues);
   const healthScore = summary?.health_score ?? 100;
 
   // Live ticker: real GST-rate buckets from this client's own invoices, not random data.
@@ -565,7 +582,10 @@ export default function Dashboard({ mode = 'client', identity, onLogout, onOpenR
               {isAdmin ? 'ITC unlocked for this client (resolved issues)' : 'Money you unlocked without a CA this month'}
             </span>
             <span className="db-hero-money-value">₹{inr(moneyUnlocked)}</span>
-            <span className="db-hero-money-desc">From issues marked "Fixed" after a supplier correction.</span>
+            <span className="db-hero-money-desc">
+              From issues marked "Fixed" after a supplier correction
+              {itcStillOpen > 0 ? ` · ₹${inr(itcStillOpen)} still open across active issues` : ''}.
+            </span>
           </div>
           <div className={`db-health-score-card ${sl(1)}`}>
             <span className="db-hero-money-label">Compliance Health Score</span>

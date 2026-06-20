@@ -98,8 +98,8 @@ function App() {
         background={background}
       >
         {showIntro ? null : !started ? (
-          <div className="landing-scroll-container" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className="hero-section" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="landing-scroll-container">
+            <div className="hero-section">
               <h1 className="hero-title">
                 <span>M</span><span>U</span><span>N</span>
                 <span>S</span><span>H</span><span>I</span>
@@ -137,7 +137,7 @@ function App() {
               </div>
             </div>
 
-            <div className="faq-page-container" style={{ position: 'relative', inset: 'auto', minHeight: '100vh', padding: '60px', display: 'flex', flexDirection: 'column' }}>
+            <div className="faq-page-container">
               <h1 className="faq-page-heading">
                 <span className="faq-text">FAQ</span>
                 <span className="faq-punctuation">?!</span>

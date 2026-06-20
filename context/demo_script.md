@@ -8,11 +8,14 @@ separate mocked-up screen, it's the *same* backend.
 
 ## 0. Before judges arrive (setup, ~5 min)
 
-1. **Restart the backend** so it picks up everything built in this session:
+1. **Restart the backend** so it picks up everything built in this session.
+   `main.py` uses relative imports, so it must run as a package from the
+   **repo root** — `uvicorn main:app` from inside `backend/` will fail with
+   `ImportError: attempted relative import with no known parent package`.
    ```bash
-   cd backend && source venv/bin/activate
-   uvicorn main:app --host 127.0.0.1 --port 8000
-   # (run from the backend/ dir, or `uvicorn backend.main:app` from repo root)
+   cd /Users/madhumohanty/Downloads/RAIT-ACM-KLEOS_snackOverlflow
+   source backend/venv/bin/activate
+   uvicorn backend.main:app --host 127.0.0.1 --port 8000
    ```
 2. **Restart the Twilio/Node server** and re-point ngrok's webhook in the Twilio
    console (Sandbox → Sandbox Settings → "When a message comes in").

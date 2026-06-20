@@ -279,6 +279,75 @@ def _extra_clients() -> list[dict]:
     ]
 
 
+def _extra_history_for_original_clients() -> dict[str, dict]:
+    """One additional, earlier month (April) of real invoice/baseline data
+    for each of the four original demo clients, layered on top of their
+    May data — purely additive, never touches ``_build_state()``, so
+    ``tests/test_ca_matching.py``'s exact asserted figures are untouched.
+
+    This gives every client genuine multi-period reconciliation history
+    (so the trend charts have more than one real point) and gives the
+    alert engine a real before/after to compare — cli_patel's risk
+    deliberately jumps >25% from April to May, which is exactly what
+    triggers the "risk changed after upload" alert.
+    """
+    return {
+        "cli_verma": {
+            "period": "2026-04",
+            "books": [
+                _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "VK-A1", "2026-04-02", 15000, 5, 750, 1006),
+                _inv("Sunrise Snacks", "27SUNAB5678B1Z2", "VK-A2", "2026-04-09", 9000, 18, 1620, 2106),
+                _inv("Kirana Supplies Co", "27KIRSU9090C1Z7", "VK-A3", "2026-04-14", 4000, 12, 480, 1006),
+            ],
+            "twob": [
+                _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "VK-A1", "2026-04-02", 15000, 5, 750, 1006),
+                _inv("Kirana Supplies Co", "27KIRSU9090C1Z7", "VK-A3", "2026-04-14", 4000, 12, 480, 1006),
+            ],
+        },
+        "cli_lakshmi": {
+            "period": "2026-04",
+            "books": [
+                _inv("Surat Mills", "24SURMI1111E1Z9", "LT-A1", "2026-04-03", 40000, 12, 4800, 6109),
+                _inv("Cotton House", "24COTHO2222F1Z3", "LT-A2", "2026-04-06", 25000, 5, 1250, 6109),
+                _inv("Dye Works", "24DYEWO3333G1Z4", "LT-A3", "2026-04-10", 18000, 18, 3240, 3923),
+            ],
+            "twob": [
+                _inv("Surat Mills", "24SURMI1111E1Z9", "LT-A1", "2026-04-03", 40000, 12, 4800, 6109),
+                _inv("Cotton House", "24COTHO2222F1Z3", "LT-A2", "2026-04-06", 25000, 5, 1250, 6109),
+            ],
+        },
+        "cli_patel": {
+            "period": "2026-04",
+            "books": [
+                _inv("MedSource Labs", "24MEDSO1111K1Z1", "PP-A1", "2026-04-04", 80000, 12, 9600, 3004),
+                _inv("PharmaCorp", "24PHARM2222L1Z2", "PP-A2", "2026-04-07", 35000, 12, 4200, 3004),
+            ],
+            "twob": [
+                _inv("PharmaCorp", "24PHARM2222L1Z2", "PP-A2", "2026-04-07", 35000, 12, 4200, 3004),
+            ],
+        },
+        "cli_technova": {
+            "period": "2026-04",
+            "books": [
+                _inv("Dell India", "29DELLI1111N1Z1", "TN-A1", "2026-04-08", 180000, 18, 32400, 8471),
+                _inv("Apple Distribution", "29APPLE2222O1Z2", "TN-A2", "2026-04-13", 140000, 18, 25200, 8517),
+            ],
+            "twob": [
+                _inv("Dell India", "29DELLI1111N1Z1", "TN-A1", "2026-04-08", 180000, 18, 32400, 8471),
+                _inv("Apple Distribution", "29APPLE2222O1Z2", "TN-A2", "2026-04-13", 140000, 18, 25200, 8517),
+            ],
+        },
+    }
+
+
+def _seed_extra_history_into_mongo() -> None:
+    for client_id, month in _extra_history_for_original_clients().items():
+        books = [_only_gst_fields(b) for b in month["books"]]
+        twob = [_only_gst_fields(b) for b in month["twob"]]
+        store.add_invoices(client_id, books, source="import")
+        store.set_baseline(client_id, twob, period=month["period"])
+
+
 def _seed_baseline_clients_into_mongo() -> None:
     state = _build_state()
     store.upsert_firm(state["firm"])
@@ -309,29 +378,58 @@ def _seed_extra_clients_into_mongo() -> None:
         store.log_activity(client_id, "client_created", f"Onboarded client {client['name']}")
 
 
-def _seed_issue_status_examples() -> None:
-    """Run reconciliation once for every client so ``ca_issues`` is populated,
-    then mark a couple of issues with non-default statuses so the ITC
-    recovery tracker has something to demonstrate beyond 'open'."""
+def _seed_reconciliation_history_and_statuses() -> None:
+    """Run reconciliation once per known period (oldest first) for every
+    client, so ``ca_reconciliation_runs`` accumulates a real chronological
+    trend instead of a single all-time snapshot — then mark a spread of
+    issues with non-default statuses (some resolved, some still being
+    chased) so the ITC recovery tracker, and the "money unlocked" figure
+    in particular, have something real to show instead of zero for every
+    client that actually has issues."""
     from . import service
 
     for client in store.list_clients():
-        try:
-            service.run_reconcile(client["id"], language="English")
-        except Exception:
-            continue
+        client_id = client["id"]
+        periods = sorted(set(store.list_invoice_periods(client_id)) | set(store.list_baseline_periods(client_id)))
+        for period in periods:
+            try:
+                service.run_reconcile(client_id, language="English", period=period)
+            except Exception:
+                continue
 
-    lakshmi_issues = store.list_issues(client_id="cli_lakshmi")
-    for issue in lakshmi_issues:
-        if issue["invoice_number"] == "LT-203" and issue["type"] == "missing_from_2b":
-            store.set_issue_status(issue["id"], "chasing", "Called Dye Works on 18 May, awaiting GSTR-1 filing.", "seed")
-        if issue["invoice_number"] == "LT-204":
-            store.set_issue_status(issue["id"], "resolved", "Supplier corrected the HSN code and reissued the invoice.", "seed")
+    _apply_demo_issue_statuses()
 
-    patel_issues = store.list_issues(client_id="cli_patel")
-    for issue in patel_issues:
-        if issue["invoice_number"] == "PP-301":
-            store.set_issue_status(issue["id"], "chasing", "Follow-up email sent to MedSource Labs.", "seed")
+
+def _apply_demo_issue_statuses() -> None:
+    """Idempotently stamp known-good demo statuses onto seeded issues.
+    Called both after a fresh seed AND on every warm-start so that changes
+    to this function take effect without a full wipe."""
+
+    def _mark(client_id: str, invoice_number: str, issue_type: str, status: str, note: str) -> None:
+        for issue in store.list_issues(client_id=client_id):
+            if issue["invoice_number"] == invoice_number and issue["type"] == issue_type:
+                store.set_issue_status(issue["id"], status, note, "seed")
+
+    # Verma: the one open issue from May is already fixed — proves "money
+    # unlocked" works even for a mostly-clean client.
+    _mark("cli_verma", "VK-104", "missing_from_2b", "resolved", "Kirana Supplies Co re-filed the invoice; ITC recovered.")
+
+    # Lakshmi: one still being chased, one already fixed.
+    _mark("cli_lakshmi", "LT-203", "missing_from_2b", "chasing", "Called Dye Works on 18 May, awaiting GSTR-1 filing.")
+    # LT-204's HSN code is unrecognised, so it carries zero rupee impact —
+    # resolving it cleans up the data-quality flag but doesn't move "money
+    # unlocked". LT-201's hsn_mismatch is the real money: resolve that too.
+    _mark("cli_lakshmi", "LT-204", "hsn_mismatch", "resolved", "Supplier corrected the HSN code and reissued the invoice.")
+    _mark("cli_lakshmi", "LT-201", "hsn_mismatch", "resolved", "Surat Mills agreed to revise the HSN rate on this invoice.")
+
+    # Patel: the big one is still in progress, the smaller one is already
+    # recovered.
+    _mark("cli_patel", "PP-301", "missing_from_2b", "chasing", "Follow-up email sent to MedSource Labs.")
+    _mark("cli_patel", "PP-303", "amount_diff", "resolved", "BioGen Healthcare corrected the GST amount on resubmission.")
+
+    for client in store.list_clients():
+        if client["name"] == "Global General Traders":
+            _mark(client["id"], "GT-002", "hsn_mismatch", "resolved", "Surat Mills corrected the HSN code for this invoice.")
 
 
 _DEMO_CLIENT_PASSWORD = os.environ.get("DEMO_CLIENT_PASSWORD", "demo1234")
@@ -343,10 +441,12 @@ def ensure_seeded() -> None:
     if store.list_clients():
         _ensure_demo_admin_user()
         _ensure_demo_client_portal_accounts()
+        _apply_demo_issue_statuses()  # re-apply on every warm-start
         return
     _seed_baseline_clients_into_mongo()
+    _seed_extra_history_into_mongo()
     _seed_extra_clients_into_mongo()
-    _seed_issue_status_examples()
+    _seed_reconciliation_history_and_statuses()
     _ensure_demo_admin_user()
     _ensure_demo_client_portal_accounts()
     _run_post_seed_hooks()
@@ -355,8 +455,9 @@ def ensure_seeded() -> None:
 def force_reseed() -> None:
     store.wipe_demo_data()
     _seed_baseline_clients_into_mongo()
+    _seed_extra_history_into_mongo()
     _seed_extra_clients_into_mongo()
-    _seed_issue_status_examples()
+    _seed_reconciliation_history_and_statuses()
     _ensure_demo_admin_user()
     _ensure_demo_client_portal_accounts()
     _run_post_seed_hooks()

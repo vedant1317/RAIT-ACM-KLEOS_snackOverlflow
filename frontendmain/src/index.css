@@ -148,6 +148,8 @@ code {
 .started-mode .hero-content {
   max-width: 1000px;
   width: 100%;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Mouse glow gradient overlay */
@@ -186,15 +188,31 @@ code {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
   user-select: none;
+}
+
+/* Landing page layout helpers */
+.landing-scroll-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-section {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Mockup Typography & Action elements */
@@ -1151,6 +1169,11 @@ code {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255,255,255,0.06);
+
+  @media (max-width: 768px) {
+    padding: 12px 20px;
+    gap: 8px;
+  }
 }
 
 .db-navbar-brand {
@@ -1230,6 +1253,7 @@ code {
 
 .db-nav-pill .notif-bell-btn:hover {
   background: rgba(245, 158, 11, 0.15);
+}
 
 .db-navbar-client-name {
   font-size: 13px;
@@ -1278,7 +1302,7 @@ code {
 }
 
 .db-status-banner {
-  margin: 0 24px 12px;
+  margin: 0 48px 12px;
   padding: 10px 16px;
   border-radius: 10px;
   background: rgba(59, 130, 246, 0.12);
@@ -1286,7 +1310,6 @@ code {
   color: #bfdbfe;
   font-size: 13px;
   font-weight: 600;
-
 }
 
 .navbar-action-btn-highlight {
@@ -1679,6 +1702,12 @@ code {
   font-size: 16px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 900px) {
+  .db-hero-money-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ═══════════════════════════════════════════════════
@@ -4107,12 +4136,9 @@ code {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
   padding: 40px 0;
-  margin-bottom: 80px; /* added spacing before FAQ section */
+  margin-bottom: 80px;
   overflow: hidden;
   z-index: 10;
 }
@@ -4168,13 +4194,19 @@ code {
 
 /* ── FAQ Page ── */
 .faq-page-container {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
   display: flex;
-  padding: 40px 60px;
+  padding: 60px;
   flex-direction: column;
   z-index: 10;
-  animation: fade-in 0.3s ease-out forwards;
+  box-sizing: border-box;
+  animation: fadeIn 0.3s ease-out forwards;
+
+  @media (max-width: 768px) {
+    padding: 40px 24px;
+  }
 }
 
 .faq-page-heading {
@@ -4185,7 +4217,7 @@ code {
 
 .faq-text {
   font-family: 'Oswald', 'Bebas Neue', 'Impact', sans-serif;
-  font-size: 12vw;
+  font-size: clamp(60px, 12vw, 180px);
   font-weight: 900;
   color: #d1d5db; /* light grey */
   line-height: 0.8;
@@ -4196,10 +4228,10 @@ code {
 
 .faq-punctuation {
   font-family: 'Comic Sans MS', 'Chalkboard SE', cursive, sans-serif;
-  font-size: 8vw;
+  font-size: clamp(40px, 8vw, 120px);
   color: #fff;
   line-height: 1;
-  margin-left: 3vw;
+  margin-left: clamp(12px, 3vw, 48px);
   transform: rotate(-12deg) translateY(-2vw);
 }
 
