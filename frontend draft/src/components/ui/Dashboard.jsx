@@ -103,7 +103,8 @@ function LineChart({ data, color, gradientId, yMin = 0, yMax = 300 }) {
 }
 
 /* ─── Main Dashboard ─────────────────────────────────────── */
-export default function Dashboard() {
+export default function Dashboard({ mode = 'client' }) {
+  const isAdmin = mode === 'admin';
   const MAX = 42;
   const overlayRef = useRef(null);
   const [spotlightIdx, setSpotlightIdx] = useState(-1);
@@ -269,7 +270,7 @@ export default function Dashboard() {
         <div className="db-stats-row">
           {[
             {
-              label: 'Invoices',
+              label: isAdmin ? 'Total Invoices' : 'Invoices',
               icon: (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -281,14 +282,14 @@ export default function Dashboard() {
               clickable: true,
             },
             {
-              label: 'Open Issues', icon: '↻',
+              label: isAdmin ? 'Issue Mix' : 'Open Issues', icon: '↻',
               value: <span>{totalTx}.00</span>,
               desc: 'Number of open issues recorded',
               clickable: true,
               onClick: () => setShowReconPopup(true),
             },
             {
-              label: 'Total ITC Risks',
+              label: isAdmin ? 'ITC Exposure per Client' : 'Total ITC Risks',
               icon: (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -301,7 +302,7 @@ export default function Dashboard() {
               onClick: () => setShowItcPopup(true),
             },
             {
-              label: 'HSN Issues', icon: '◷',
+              label: isAdmin ? 'Priority Clients' : 'HSN Issues', icon: '◷',
               value: <span>{totalTx}</span>,
               desc: 'HSN code discrepancies detected',
             },
@@ -331,7 +332,7 @@ export default function Dashboard() {
                 <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
                 <line x1="6" y1="20" x2="6" y2="14"/>
               </svg>
-              <h2 className="db-chart-title">ITC Lost per Sales</h2>
+              <h2 className="db-chart-title">{isAdmin ? 'ITC Exposure per Client' : 'ITC Lost per Sales'}</h2>
             </div>
             <div className="db-chart-area">
               <LineChart data={salesData} color="#10b981" gradientId="salesGrad" yMin={0} yMax={300} />
@@ -346,7 +347,7 @@ export default function Dashboard() {
                 <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
                 <line x1="6" y1="20" x2="6" y2="14"/>
               </svg>
-              <h2 className="db-chart-title">GSTR 2B v/s Invoice Manager</h2>
+              <h2 className="db-chart-title">{isAdmin ? 'Issue Mix' : 'GSTR 2B v/s Invoice Manager'}</h2>
             </div>
             <div className="db-chart-area">
               <LineChart data={revenueData} color="#10b981" gradientId="revGrad" yMin={0} yMax={revMax} />
@@ -358,7 +359,7 @@ export default function Dashboard() {
         {/* ── Logs-Style Commitments ── */}
         <div className={`db-payments-card logs-card ${sl(5)}`} style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="logs-header">
-            <h2 className="logs-title">Commitments</h2>
+            <h2 className="logs-title">{isAdmin ? 'Priority Clients' : 'Commitments'}</h2>
             <p className="logs-sub">{mockCommitments.length} of {mockCommitments.length} commitments</p>
             <div className="logs-search-wrapper">
               <div className="logs-search-input-box">

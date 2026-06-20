@@ -90,6 +90,7 @@ function App() {
   const [showWelcomeCard, setShowWelcomeCard] = useState(false)
   const [showCanvasPage, setShowCanvasPage] = useState(false)
   const [canvasView, setCanvasView] = useState('vertical')
+  const [dashboardMode, setDashboardMode] = useState('client')
 
   // DataGridHero States (initialized with first preset)
   const [rows, setRows] = useState(PRESETS[0].rows)
@@ -188,13 +189,13 @@ function App() {
         ) : (
           <div className="modes-container">
             <div className="user-mode-wrapper">
-              <div className="mode-card user-mode" onClick={() => setShowLoginModal(true)}>
+              <div className="mode-card user-mode" onClick={() => { setDashboardMode('client'); setShowLoginModal(true); }}>
                 <h2 className="mode-title">Client Mode</h2>
               </div>
             </div>
 
             <div className="admin-mode-wrapper">
-              <div className="mode-card admin-mode" onClick={() => alert("Entering Office...")}>
+              <div className="mode-card admin-mode" onClick={() => { setDashboardMode('admin'); setShowCanvasPage(true); }}>
                 <h2 className="mode-title">Admin Mode</h2>
               </div>
             </div>
@@ -470,7 +471,7 @@ function App() {
           <div className="canvas-dim-overlay" />
 
           {/* Dashboard content */}
-          <Dashboard />
+          <Dashboard mode={dashboardMode} />
 
 
         </div>
