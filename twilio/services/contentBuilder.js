@@ -11,7 +11,8 @@ const MISMATCH_EMOJI = {
   duplicate: "♻️",
 };
 
-const LIST_BUTTON_LABEL = { hi: "Bill dekhiye", en: "View bills" };
+const LIST_BUTTON_LABEL = { hi: "Bill dekhiye", mr: "Bill paha", en: "View bills" };
+const TWILIO_CONTENT_LANGUAGE = { hi: "hi", mr: "mr", en: "en" };
 
 // Twilio's WhatsApp list-picker tops out at 10 rows.
 const MAX_ITEMS = 10;
@@ -32,7 +33,7 @@ async function createMismatchListContent(headline, explanations, language) {
 
   const content = await client().content.v1.contents.create({
     friendlyName: `munshi_reconcile_${Date.now()}`,
-    language: language === "en" ? "en" : "hi",
+    language: TWILIO_CONTENT_LANGUAGE[language] || "hi",
     types: {
       "twilio/list-picker": {
         body: headline,

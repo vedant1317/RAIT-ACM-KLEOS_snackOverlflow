@@ -9,8 +9,24 @@ SCOPE
 Per the plan agreed before implementation, this build prioritized Mode 1
 (WhatsApp trader bot) only, on top of a reusable backend "compliance brain"
 so the MSME dashboard / CA platform modes described in solution.txt can plug
-into the same API later without touching the reconciliation logic. The
-MSME dashboard and CA platform themselves were NOT built.
+into the same API later without touching the reconciliation logic. In that
+original WhatsApp-only build, the MSME dashboard and CA platform themselves
+were not built.
+
+CURRENT STATUS ADDENDUM
+-----------------------
+This log originally described the WhatsApp-only prototype. The repo has since
+grown beyond that first scope: the CA Platform is now implemented as a demo
+B2B SaaS dashboard in frontend/ with a FastAPI backend under
+backend/ca_platform/. It includes firm-wide portfolio metrics, client
+onboarding, per-client invoice/GSTR-2B mapping, CSV/XLSX imports,
+deterministic ITC impact calculation, JSON-file persistence, and a generic
+ERP invoice-ingestion endpoint authenticated by each client's API key.
+
+The MSME dashboard is still not built. Live GST portal integration,
+auto-filing of corrections, and generated voice output/TTS also remain out of
+scope. WhatsApp voice-note input has since been added through Groq
+transcription.
 
 ARCHITECTURE
 ------------
@@ -164,10 +180,11 @@ Phase 4 testing and was successfully processed by Gemini Vision end to end.
 
 NOT BUILT (explicitly deferred, per the agreed plan)
 -----------------------------------------------------
-Voice note input/output, auto-generated supplier follow-up messages,
+Generated voice output/TTS, auto-generated supplier follow-up messages,
 resolution-lifecycle tracking, monthly digests, the MSME dashboard, the CA
-platform, supplier risk scoring/forecasting, the compliance knowledge graph,
-any live GST portal integration, and auto-filing of corrections. The
-backend's API surface (extract / upload baseline / confirm invoice /
-reconcile) is intentionally channel-agnostic so a future dashboard or CA UI
-could call it directly without changes to the reconciliation engine itself.
+platform's production hardening, supplier risk scoring/forecasting, the
+compliance knowledge graph, any live GST portal integration, and auto-filing
+of corrections. The original WhatsApp backend API surface (extract / upload
+baseline / confirm invoice / reconcile) is channel-agnostic, and that design
+has now been reused by the CA platform rather than requiring a rewrite of the
+core reconciliation logic.

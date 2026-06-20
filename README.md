@@ -19,9 +19,9 @@ WhatsApp (trader's phone)
 twilio/   Node/Express — the WhatsApp channel adapter
   - Twilio webhook, per-trader session state (MongoDB)
   - Downloads media (invoice photos/PDFs, GSTR-2B documents)
-  - Groq: transcription / free-text intent & correction parsing
+  - Groq: WhatsApp voice-note transcription / free-text intent & correction parsing
   - Calls backend/ for everything GST-related
-  - Formats Hindi-first WhatsApp replies, incl. a tap-to-expand
+  - Formats Hindi/Marathi/English WhatsApp replies, incl. a tap-to-expand
     interactive list of reconciliation issues
         │  HTTP
         ▼
@@ -113,10 +113,10 @@ the same Sandbox Settings page), then message it.
 2. Send a photo/PDF of an invoice — the bot extracts the 8 key fields via
    Gemini Vision and asks you to confirm or correct them.
 3. Send your GSTR-2B export as a document (CSV or Excel).
-4. Send `check` — the bot runs reconciliation and sends back a tappable
-   list of issues found, each with its rupee impact. Tap a row for the full
-   explanation, citing that specific bill.
-5. Send `english` / `hindi` any time to switch language.
+4. Send or say `check` in a WhatsApp voice note — the bot runs reconciliation
+   and sends back a tappable list of issues found, each with its rupee impact.
+   Tap a row for the full explanation, citing that specific bill.
+5. Send or say `english` / `hindi` / `marathi` any time to switch language.
 
 ## Demo data
 
@@ -133,9 +133,15 @@ and the expected rupee amounts.
 backend/
   main.py                       FastAPI app
   core/                         extraction, reconciliation, ITC, explanation
+  ca_platform/                  CA SaaS API, matching, JSON persistence
   routers/                      HTTP endpoints
   data/                         HSN master list + seeded demo dataset
   tests/                        pytest for the reconciliation engine
+
+frontend/
+  app/                          Next.js CA platform dashboard
+  components/                   dashboard UI components
+  lib/                          typed API client and formatting helpers
 
 twilio/
   server.js                     Express app
@@ -200,9 +206,15 @@ and run with the existing suite (`python -m pytest backend/tests -v`).
 
 ## What's deliberately not built
 
-Live GST portal integration, auto-filing of corrections, voice
-input/output, the MSME dashboard, and the CA platform are out of scope for
+Live GST portal integration, auto-filing of corrections, generated voice
+output/TTS replies, and the trader-facing MSME dashboard are out of scope for
 this prototype (see `context/solution.txt`'s "what to deliberately NOT
-build" section and `context/implementation.txt` for the full list). The
-backend's API is channel-agnostic enough that a future dashboard or CA UI
-could call it directly without touching the reconciliation engine.
+build" section for the original scope notes). WhatsApp voice-note input is
+implemented through Groq transcription. The CA platform is no longer future
+scope: a demo B2B dashboard now exists in `frontend/` and is backed by the
+`backend/ca_platform/` API.
+
+The production GST-portal path would need authorized GST/GSP-style API
+access, taxpayer consent, and human approval for filing actions. This
+prototype deliberately uses uploaded GSTR-2B files instead of live portal
+sync, and it recommends fixes rather than filing anything automatically.

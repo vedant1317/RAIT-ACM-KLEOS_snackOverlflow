@@ -8,7 +8,7 @@ const SessionSchema = new mongoose.Schema(
       enum: ["idle", "awaiting_confirmation"],
       default: "idle",
     },
-    language: { type: String, enum: ["hi", "en"], default: "hi" },
+    language: { type: String, enum: ["hi", "en", "mr"], default: "hi" },
     pendingExtraction: { type: mongoose.Schema.Types.Mixed, default: null },
     confirmedInvoiceCount: { type: Number, default: 0 },
     has2B: { type: Boolean, default: false },

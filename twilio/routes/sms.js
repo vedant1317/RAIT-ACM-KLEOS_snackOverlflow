@@ -25,6 +25,8 @@ const SPREADSHEET_TYPES = new Set([
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
+const AUDIO_PREFIXES = ["audio/"];
+const BACKEND_LANGUAGE = { en: "English", hi: "Hindi", mr: "Marathi" };
 
 function twilioClient() {
   return twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -38,9 +40,87 @@ async function sendMessage(to, body) {
   });
 }
 
-const LANGUAGE_OF = { english: "en", hindi: "hi" };
-const GREETING_WORDS = new Set(["hi", "hello", "hey", "menu", "help", "namaste", "start"]);
-const RECONCILE_WORDS = new Set(["check", "reconcile", "milaan karo", "milan karo"]);
+const LANGUAGE_OF = {
+  english: "en",
+  angrezi: "en",
+  इंग्रजी: "en",
+  hindi: "hi",
+  हिन्दी: "hi",
+  हिंदी: "hi",
+  marathi: "mr",
+  मराठी: "mr",
+  marathi_madhe: "mr",
+};
+const GREETING_WORDS = new Set([
+  "hi",
+  "hello",
+  "hey",
+  "menu",
+  "help",
+  "namaste",
+  "start",
+  "नमस्ते",
+  "नमस्कार",
+]);
+const RECONCILE_WORDS = new Set([
+  "check",
+  "reconcile",
+  "milaan karo",
+  "milan karo",
+  "जुळवा",
+  "जुळवणी करा",
+  "तपासा",
+  "तपास",
+  "तपासून बघा",
+]);
+const CONFIRM_WORDS = new Set([
+  "ok",
+  "okay",
+  "yes",
+  "sahi hai",
+  "theek hai",
+  "haan",
+  "barobar",
+  "barobar aahe",
+  "ठीक आहे",
+  "बरोबर आहे",
+  "हो",
+]);
+
+function normalise(text) {
+  return (text || "")
+    .trim()
+    .toLocaleLowerCase("en-IN")
+    .replace(/[?.,!'"`]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function isAudioType(contentType = "") {
+  return AUDIO_PREFIXES.some((prefix) => contentType.toLowerCase().startsWith(prefix));
+}
+
+function audioFilename(contentType = "") {
+  if (contentType.includes("mpeg") || contentType.includes("mp3")) return "voice.mp3";
+  if (contentType.includes("mp4") || contentType.includes("m4a")) return "voice.m4a";
+  if (contentType.includes("wav")) return "voice.wav";
+  if (contentType.includes("webm")) return "voice.webm";
+  return "voice.ogg";
+}
+
+function directLanguage(lower) {
+  if (LANGUAGE_OF[lower]) return LANGUAGE_OF[lower];
+  if (lower.includes("english") || lower.includes("angrezi") || lower.includes("इंग्रजी")) return "en";
+  if (lower.includes("hindi") || lower.includes("हिंदी") || lower.includes("हिन्दी")) return "hi";
+  if (lower.includes("marathi") || lower.includes("मराठी")) return "mr";
+  return null;
+}
+
+function languageFromIntent(intent) {
+  if (intent === "language_en") return "en";
+  if (intent === "language_hi") return "hi";
+  if (intent === "language_mr") return "mr";
+  return null;
+}
 
 router.post("/sms", async (req, res) => {
   const from = req.body.From;
@@ -74,64 +154,98 @@ router.post("/sms", async (req, res) => {
         return;
       }
 
+      if (isAudioType(contentType)) {
+        twiml.message(t(language).processingVoice);
+        res.type("text/xml").send(twiml.toString());
+        handleVoiceMedia(from, session, mediaUrl, contentType).catch((err) =>
+          console.error("[sms] voice handling failed:", err.message)
+        );
+        return;
+      }
+
       twiml.message(t(language).unknown);
       return res.type("text/xml").send(twiml.toString());
     }
 
-    const lower = body.toLowerCase();
-
-    if (GREETING_WORDS.has(lower)) {
-      twiml.message(t(language).menu);
-      return res.type("text/xml").send(twiml.toString());
-    }
-
-    if (lower in LANGUAGE_OF) {
-      const newLanguage = LANGUAGE_OF[lower];
-      await setLanguage(from, newLanguage);
-      twiml.message(`${t(newLanguage).languageSwitched}\n\n${t(newLanguage).menu}`);
-      return res.type("text/xml").send(twiml.toString());
-    }
-
-    // Tapping a row in the reconciliation List Picker sends the row's id
-    // (the invoice number) back as a plain inbound message — match it
-    // against the last result and reply with that bill's full detail.
-    if (session.lastMismatches && session.lastMismatches.length > 0) {
-      const tapped = session.lastMismatches.find((m) => m.invoice_number === body.trim());
-      if (tapped) {
-        twiml.message(formatMismatchDetail(tapped, language));
-        return res.type("text/xml").send(twiml.toString());
-      }
-    }
-
-    if (RECONCILE_WORDS.has(lower)) {
-      if (session.confirmedInvoiceCount === 0) {
-        twiml.message(t(language).needInvoicesBeforeCheck);
-        return res.type("text/xml").send(twiml.toString());
-      }
-      if (!session.has2B) {
-        twiml.message(t(language).needBaselineBeforeCheck);
-        return res.type("text/xml").send(twiml.toString());
-      }
-      twiml.message(t(language).reconciling);
-      res.type("text/xml").send(twiml.toString());
-      handleReconcile(from, language).catch((err) => console.error("[sms] reconcile failed:", err.message));
-      return;
-    }
-
-    if (session.stage === "awaiting_confirmation") {
-      const reply = await handleConfirmationReply(from, language, session, body);
-      twiml.message(reply);
-      return res.type("text/xml").send(twiml.toString());
-    }
-
-    twiml.message(t(language).unknown);
-    return res.type("text/xml").send(twiml.toString());
+    const action = await buildTextAction(from, session, body);
+    twiml.message(action.reply);
+    res.type("text/xml").send(twiml.toString());
+    if (action.after) action.after().catch((err) => console.error("[sms] async action failed:", err.message));
+    return;
   } catch (err) {
     console.error("[sms] handler error:", err);
     twiml.message(t(language).unknown);
     return res.type("text/xml").send(twiml.toString());
   }
 });
+
+async function buildTextAction(from, session, body) {
+  const language = session.language || "hi";
+  const lower = normalise(body);
+
+  const requestedLanguage = directLanguage(lower);
+  if (requestedLanguage) {
+    await setLanguage(from, requestedLanguage);
+    return { reply: `${t(requestedLanguage).languageSwitched}\n\n${t(requestedLanguage).menu}` };
+  }
+
+  if (GREETING_WORDS.has(lower)) {
+    return { reply: t(language).menu };
+  }
+
+  // Tapping a row in the reconciliation List Picker sends the row's id
+  // (the invoice number) back as a plain inbound message — match it
+  // against the last result and reply with that bill's full detail.
+  if (session.lastMismatches && session.lastMismatches.length > 0) {
+    const tapped = session.lastMismatches.find(
+      (m) => normalise(m.invoice_number) === lower || m.invoice_number === body.trim()
+    );
+    if (tapped) {
+      return { reply: formatMismatchDetail(tapped, language) };
+    }
+  }
+
+  let intent = null;
+  let corrections = {};
+
+  if (RECONCILE_WORDS.has(lower)) intent = "reconcile";
+  else if (session.stage === "awaiting_confirmation" && CONFIRM_WORDS.has(lower)) intent = "confirm";
+
+  if (!intent) {
+    const parsed = await groqService.parseIntent(body);
+    intent = parsed.intent;
+    corrections = parsed.corrections;
+  }
+
+  const intentLanguage = languageFromIntent(intent);
+  if (intentLanguage) {
+    await setLanguage(from, intentLanguage);
+    return { reply: `${t(intentLanguage).languageSwitched}\n\n${t(intentLanguage).menu}` };
+  }
+
+  if (intent === "menu") {
+    return { reply: t(language).menu };
+  }
+
+  if (intent === "reconcile") {
+    if (session.confirmedInvoiceCount === 0) {
+      return { reply: t(language).needInvoicesBeforeCheck };
+    }
+    if (!session.has2B) {
+      return { reply: t(language).needBaselineBeforeCheck };
+    }
+    return {
+      reply: t(language).reconciling,
+      after: () => handleReconcile(from, language),
+    };
+  }
+
+  if (session.stage === "awaiting_confirmation") {
+    return { reply: await handleConfirmationIntent(from, language, session, intent, corrections) };
+  }
+
+  return { reply: t(language).unknown };
+}
 
 async function handleInvoiceMedia(from, language, mediaUrl, contentType) {
   try {
@@ -159,19 +273,30 @@ async function handleBaselineMedia(from, language, mediaUrl, contentType) {
   }
 }
 
-async function handleConfirmationReply(from, language, session, body) {
-  const lower = body.toLowerCase();
-  const looksLikeConfirm = ["ok", "okay", "yes", "sahi hai", "theek hai", "haan"].includes(lower);
-
-  let intent = looksLikeConfirm ? "confirm" : null;
-  let corrections = {};
-
-  if (!intent) {
-    const parsed = await groqService.parseIntent(body);
-    intent = parsed.intent;
-    corrections = parsed.corrections;
+async function handleVoiceMedia(from, session, mediaUrl, contentType) {
+  const language = session.language || "hi";
+  let transcript;
+  try {
+    const { buffer } = await downloadMedia(mediaUrl);
+    transcript = await groqService.transcribeAudio(buffer, audioFilename(contentType), contentType, language);
+  } catch (err) {
+    console.error("[voice] transcription failed:", err.message);
+    await sendMessage(from, t(language).voiceFailed);
+    return;
   }
 
+  if (!transcript) {
+    await sendMessage(from, t(language).voiceFailed);
+    return;
+  }
+
+  const freshSession = await getOrCreateSession(from);
+  const action = await buildTextAction(from, freshSession, transcript);
+  await sendMessage(from, action.reply);
+  if (action.after) await action.after();
+}
+
+async function handleConfirmationIntent(from, language, session, intent, corrections) {
   if (intent === "confirm") {
     await backendClient.confirmInvoice(from, session.pendingExtraction);
     await clearPendingExtraction(from);
@@ -191,7 +316,7 @@ async function handleConfirmationReply(from, language, session, body) {
 async function handleReconcile(from, language) {
   let result;
   try {
-    result = await backendClient.runReconciliation(from, language === "en" ? "English" : "Hindi");
+    result = await backendClient.runReconciliation(from, BACKEND_LANGUAGE[language] || "Hindi");
   } catch (err) {
     console.error("[reconcile] backend call failed:", err.message);
     await sendMessage(from, t(language).unknown);

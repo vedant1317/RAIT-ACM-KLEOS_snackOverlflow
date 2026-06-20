@@ -32,18 +32,40 @@ def _client():
     return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
-def _fallback_explanation(mismatch: Mismatch) -> str:
+def _normalise_language(language: str) -> str:
+    return (language or "Hindi").strip().lower()
+
+
+def _fallback_explanation(mismatch: Mismatch, language: str) -> str:
     """Plain-template narration used if the Groq call fails. The rupee
     figure and recommendation always reach the trader even if the LLM
     phrasing layer is unavailable.
     """
+    lang = _normalise_language(language)
+    if lang.startswith("marathi"):
+        return (
+            f"Bill {mismatch.invoice_number} ({mismatch.vendor_name}): "
+            f"Rs.{mismatch.rupee_impact} ITC risk madhye aahe. "
+            f"{mismatch.details.get('recommendation', '')}"
+        )
+    if lang.startswith("hindi"):
+        return (
+            f"Bill {mismatch.invoice_number} ({mismatch.vendor_name}): "
+            f"Rs.{mismatch.rupee_impact} ITC risk mein hai. "
+            f"{mismatch.details.get('recommendation', '')}"
+        )
     return (
         f"Invoice {mismatch.invoice_number} ({mismatch.vendor_name}): "
         f"Rs.{mismatch.rupee_impact} at risk. {mismatch.details.get('recommendation', '')}"
     )
 
 
-def _fallback_headline(total_recoverable: float) -> str:
+def _fallback_headline(total_recoverable: float, language: str) -> str:
+    lang = _normalise_language(language)
+    if lang.startswith("marathi"):
+        return f"Ya mahinyat Rs.{total_recoverable} ITC vachavu shakta."
+    if lang.startswith("hindi"):
+        return f"Is mahine Rs.{total_recoverable} ITC bach sakta hai."
     return f"You can recover Rs.{total_recoverable} this month."
 
 
@@ -66,7 +88,7 @@ def explain_mismatch(mismatch: Mismatch, language: str = "Hindi") -> str:
         )
         return response.choices[0].message.content.strip()
     except Exception:
-        return _fallback_explanation(mismatch)
+        return _fallback_explanation(mismatch, language)
 
 
 def summary_headline(total_recoverable: float, language: str = "Hindi") -> str:
@@ -81,4 +103,4 @@ def summary_headline(total_recoverable: float, language: str = "Hindi") -> str:
         )
         return response.choices[0].message.content.strip()
     except Exception:
-        return _fallback_headline(total_recoverable)
+        return _fallback_headline(total_recoverable, language)
