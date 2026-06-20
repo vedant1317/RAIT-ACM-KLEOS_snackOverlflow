@@ -110,6 +110,7 @@ export default function Dashboard() {
   const [showInvoicesPopup, setShowInvoicesPopup] = useState(false);
   const [showReconPopup, setShowReconPopup] = useState(false);
   const [showItcPopup, setShowItcPopup] = useState(false);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [hoveredReconCategory, setHoveredReconCategory] = useState(null);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -200,12 +201,12 @@ export default function Dashboard() {
   const totalRecon = reconCategories.reduce((acc, cat) => acc + cat.count, 0);
 
   const mockCommitments = [
-    { badge: 'Info', time: '08:02:45 PM', supplier: 'Surat Mills', desc: 'Request processed successfully', daysLeft: 14, badgeColor: '#10b981', badgeBg: 'rgba(16, 185, 129, 0.15)' },
-    { badge: 'Warning', time: '08:02:42 PM', supplier: 'Cotton House', desc: 'Cache miss ratio exceeds threshold', daysLeft: 7, badgeColor: '#fbbf24', badgeBg: 'rgba(245, 158, 11, 0.15)' },
-    { badge: 'Info', time: '08:02:38 PM', supplier: 'Dye Works', desc: 'User session created', daysLeft: 3, badgeColor: '#10b981', badgeBg: 'rgba(16, 185, 129, 0.15)' },
-    { badge: 'Error', time: '08:02:32 PM', supplier: 'Thread & Co', desc: 'Payment gateway unavailable', daysLeft: -1, badgeColor: '#ef4444', badgeBg: 'rgba(239, 68, 68, 0.15)' },
-    { badge: 'Info', time: '08:02:30 PM', supplier: 'Weave Co', desc: 'Index updated', daysLeft: -3, badgeColor: '#10b981', badgeBg: 'rgba(16, 185, 129, 0.15)' }
-  ].sort((a, b) => b.daysLeft - a.daysLeft); // Descending order
+    { time: '08:02:45 PM', supplier: 'Surat Mills', gstValue: '₹6,000', daysLeft: 14 },
+    { time: '08:02:42 PM', supplier: 'Cotton House', gstValue: '₹1,500', daysLeft: 7 },
+    { time: '08:02:38 PM', supplier: 'Dye Works', gstValue: '₹3,600', daysLeft: 3 },
+    { time: '08:02:32 PM', supplier: 'Thread & Co', gstValue: '₹1,800', daysLeft: -1 },
+    { time: '08:02:30 PM', supplier: 'Weave Co', gstValue: '₹9,000', daysLeft: -3 }
+  ].sort((a, b) => a.daysLeft - b.daysLeft); // Ascending order
 
 
   return (
@@ -213,13 +214,52 @@ export default function Dashboard() {
 
       {/* ── Dashboard Navbar ── */}
       <nav className="db-navbar">
-        <span className="db-navbar-brand">MUNSHI</span>
-        <div className="db-navbar-profile">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-          </svg>
+        <span className="db-navbar-brand zigzag-text">
+          <span className="zigzag-up">M</span>
+          <span className="zigzag-down">U</span>
+          <span className="zigzag-up">N</span>
+          <span className="zigzag-down">S</span>
+          <span className="zigzag-up">H</span>
+          <span className="zigzag-down">I</span>
+        </span>
+        <div className="db-navbar-right">
+          <div className="notif-bell-wrapper">
+            <button className="notif-bell-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {mockCommitments.filter(c => c.daysLeft < 2).length > 0 && (
+                <span className="notif-badge-count">{mockCommitments.filter(c => c.daysLeft < 2).length}</span>
+              )}
+            </button>
+            {showNotifDropdown && (
+              <div className="notif-dropdown">
+                <div className="notif-dropdown-arrow" />
+                {mockCommitments.filter(c => c.daysLeft < 2).map((c, i) => (
+                  <div key={i} className="notif-dropdown-item">
+                    <svg className="notif-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div className="notif-item-content">
+                      <div className="notif-item-title">{c.supplier} — {c.gstValue}</div>
+                      <div className="notif-item-sub">{c.daysLeft} Days remaining</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="db-navbar-profile">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+          </div>
         </div>
       </nav>
 
@@ -306,7 +346,7 @@ export default function Dashboard() {
                 <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
                 <line x1="6" y1="20" x2="6" y2="14"/>
               </svg>
-              <h2 className="db-chart-title">GSTR 2B V/S Invoice Manager</h2>
+              <h2 className="db-chart-title">GSTR 2B v/s Invoice Manager</h2>
             </div>
             <div className="db-chart-area">
               <LineChart data={revenueData} color="#10b981" gradientId="revGrad" yMin={0} yMax={revMax} />
@@ -338,17 +378,10 @@ export default function Dashboard() {
           <div className="db-payments-list logs-list">
             {mockCommitments.map((c, i) => (
               <div key={i} className="logs-row">
-                <svg className="logs-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-                <div className="logs-badge" style={{ color: c.badgeColor, backgroundColor: c.badgeBg }}>
-                  {c.badge}
-                </div>
-                <div className="logs-time">{c.time}</div>
                 <div className="logs-supplier">{c.supplier}</div>
-                <div className="logs-desc">{c.desc}</div>
+                <div className="logs-desc">{c.gstValue}</div>
                 <div className="logs-days" style={{ color: c.daysLeft >= 0 ? '#10b981' : '#ef4444' }}>
-                  {c.daysLeft}
+                  {c.daysLeft} Days
                 </div>
               </div>
             ))}

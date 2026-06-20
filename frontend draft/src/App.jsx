@@ -189,7 +189,7 @@ function App() {
           <div className="modes-container">
             <div className="user-mode-wrapper">
               <div className="mode-card user-mode" onClick={() => setShowLoginModal(true)}>
-                <h2 className="mode-title">User Mode</h2>
+                <h2 className="mode-title">Client Mode</h2>
               </div>
             </div>
 
@@ -472,23 +472,7 @@ function App() {
           {/* Dashboard content */}
           <Dashboard />
 
-          {/* View toggle arrows */}
-          <button
-            type="button"
-            className="canvas-nav-btn canvas-nav-left"
-            onClick={() => setCanvasView(canvasView === 'vertical' ? 'horizontal' : 'vertical')}
-            aria-label="Previous view"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            type="button"
-            className="canvas-nav-btn canvas-nav-right"
-            onClick={() => setCanvasView(canvasView === 'vertical' ? 'horizontal' : 'vertical')}
-            aria-label="Next view"
-          >
-            <ChevronRight size={20} />
-          </button>
+
         </div>
       )}
     </div>
