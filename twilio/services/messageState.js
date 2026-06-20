@@ -44,6 +44,49 @@ async function setLastMismatches(phone, mismatches) {
   return Session.findOneAndUpdate({ phone }, { $set: { lastMismatches: mismatches } }, { new: true, upsert: true });
 }
 
+// --- batch invoice intake -------------------------------------------------
+async function startReviewQueue(phone, queue, { saved = 0, failed = 0 } = {}) {
+  const head = queue[0] || null;
+  return Session.findOneAndUpdate(
+    { phone },
+    {
+      $set: {
+        stage: head ? "reviewing_batch" : "idle",
+        reviewQueue: queue,
+        pendingExtraction: head,
+      },
+      $inc: { batchSaved: saved, batchFailed: failed, confirmedInvoiceCount: saved },
+    },
+    { new: true, upsert: true }
+  );
+}
+
+async function advanceReviewQueue(phone) {
+  const session = await Session.findOne({ phone });
+  if (!session) return null;
+  const remaining = (session.reviewQueue || []).slice(1);
+  const head = remaining[0] || null;
+  return Session.findOneAndUpdate(
+    { phone },
+    {
+      $set: {
+        reviewQueue: remaining,
+        pendingExtraction: head,
+        stage: head ? "reviewing_batch" : "idle",
+      },
+    },
+    { new: true, upsert: true }
+  );
+}
+
+async function setPendingMedia(phone, media) {
+  return setStage(phone, "awaiting_media_type", { pendingMedia: media });
+}
+
+async function clearPendingMedia(phone) {
+  return Session.findOneAndUpdate({ phone }, { $set: { pendingMedia: null } }, { new: true, upsert: true });
+}
+
 module.exports = {
   getOrCreateSession,
   setStage,
@@ -53,4 +96,8 @@ module.exports = {
   incrementInvoiceCount,
   markBaselineUploaded,
   setLastMismatches,
+  startReviewQueue,
+  advanceReviewQueue,
+  setPendingMedia,
+  clearPendingMedia,
 };

@@ -3,13 +3,51 @@ from __future__ import annotations
 import json
 import os
 import time
+from datetime import date
 from typing import Any
+
+from pydantic import BaseModel
 
 from ..models.schemas import ExtractedInvoice
 from . import demo_cache
+from .gstin_utils import is_valid_gstin
 
 _MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
 _MAX_ATTEMPTS = 3
+_STANDARD_RATES = {0.0, 0.25, 3.0, 5.0, 12.0, 18.0, 28.0}
+
+
+class _RawExtraction(BaseModel):
+    """What we ask Gemini to produce — deliberately without needs_review /
+    review_reasons. Confidence is assessed deterministically in Python
+    afterwards, never self-reported by the model: an extraction step that
+    grades its own homework defeats the point of flagging weak reads."""
+
+    vendor_name: str
+    vendor_gstin: str
+    invoice_number: str
+    invoice_date: date
+    taxable_value: float
+    gst_rate: float
+    gst_amount: float
+    hsn_code: str
+
+
+def _assess_confidence(raw: _RawExtraction) -> tuple[bool, list[str]]:
+    reasons: list[str] = []
+    if not raw.vendor_gstin or not is_valid_gstin(raw.vendor_gstin):
+        reasons.append("vendor_gstin doesn't look like a valid 15-character GSTIN")
+    if not raw.invoice_number.strip():
+        reasons.append("invoice_number is blank")
+    if raw.gst_amount <= 0:
+        reasons.append("gst_amount is zero or negative")
+    if not raw.hsn_code.strip():
+        reasons.append("hsn_code is missing")
+    if round(raw.gst_rate, 2) not in _STANDARD_RATES:
+        reasons.append(f"gst_rate {raw.gst_rate}% is not a standard GST slab")
+    if raw.taxable_value <= 0:
+        reasons.append("taxable_value is zero or negative")
+    return (len(reasons) > 0, reasons)
 
 _PROMPT = (
     "You are reading a photo or PDF of an Indian GST invoice. Extract exactly "
@@ -60,11 +98,13 @@ def extract_invoice(file_bytes: bytes, mime_type: str) -> ExtractedInvoice:
                 ],
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_schema=ExtractedInvoice,
+                    response_schema=_RawExtraction,
                 ),
             )
             data = json.loads(response.text)
-            return ExtractedInvoice.model_validate(data)
+            raw = _RawExtraction.model_validate(data)
+            needs_review, reasons = _assess_confidence(raw)
+            return ExtractedInvoice(**raw.model_dump(), needs_review=needs_review, review_reasons=reasons)
         except Exception as exc:
             last_error = exc
             if attempt < _MAX_ATTEMPTS - 1:

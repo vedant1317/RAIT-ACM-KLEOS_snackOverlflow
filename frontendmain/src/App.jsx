@@ -5,6 +5,7 @@ import DataGridHero from './components/DataGridHero'
 import VerticalBarsNoise from './components/ui/vertical-bars'
 import HorizontalFlowBars from './components/ui/horizontal-bars'
 import Dashboard from './components/ui/Dashboard'
+import { useAuth } from './hooks/useAuth'
 
 // Beautiful predefined color and animation presets
 const PRESETS = [
@@ -91,6 +92,12 @@ function App() {
   const [showCanvasPage, setShowCanvasPage] = useState(false)
   const [canvasView, setCanvasView] = useState('vertical')
   const [dashboardMode, setDashboardMode] = useState('client')
+
+  const caAuth = useAuth('ca')
+  const clientAuth = useAuth('client')
+  const activeAuth = dashboardMode === 'admin' ? caAuth : clientAuth
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
 
   // DataGridHero States (initialized with first preset)
   const [rows, setRows] = useState(PRESETS[0].rows)
@@ -195,7 +202,7 @@ function App() {
             </div>
 
             <div className="admin-mode-wrapper">
-              <div className="mode-card admin-mode" onClick={() => { setDashboardMode('admin'); setShowCanvasPage(true); }}>
+              <div className="mode-card admin-mode" onClick={() => { setDashboardMode('admin'); setShowLoginModal(true); }}>
                 <h2 className="mode-title">Admin Mode</h2>
               </div>
             </div>
@@ -387,38 +394,56 @@ function App() {
                   <X />
                 </button>
 
-                <h2 className="modal-title-text">Log in to your account</h2>
+                <h2 className="modal-title-text">
+                  {dashboardMode === 'admin' ? 'CA Admin Login' : 'Log in to your business dashboard'}
+                </h2>
 
-                <form onSubmit={(e) => { e.preventDefault(); setShowWelcomeCard(true); }}>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const ok = await activeAuth.login(loginEmail, loginPassword);
+                    if (ok) {
+                      setLoginPassword('');
+                      setShowWelcomeCard(true);
+                    }
+                  }}
+                >
                   <div className="input-group">
                     <Mail className="input-icon" />
-                    <input type="email" placeholder="Email address" required />
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      required
+                      autoComplete="email"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                    />
                   </div>
 
                   <div className="input-group">
                     <Lock className="input-icon" />
-                    <input type="password" placeholder="Password" required />
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      required
+                      autoComplete="current-password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                    />
                     <Eye className="input-icon-right" />
                   </div>
 
-                  <div className="form-options">
-                    <label className="remember-me">
-                      <div className="switch">
-                        <input type="checkbox" id="remember" />
-                        <span className="slider"></span>
-                      </div>
-                      <span>Remember me</span>
-                    </label>
-                    <a href="#" className="forgot-password" onClick={(e) => { e.preventDefault(); alert('Forgot password clicked'); }}>
-                      Forgot password?
-                    </a>
-                  </div>
+                  {activeAuth.error && <p className="login-error-text">{activeAuth.error}</p>}
 
-                  <button type="submit" className="login-btn">Log In</button>
+                  <button type="submit" className="login-btn" disabled={activeAuth.loading}>
+                    {activeAuth.loading ? 'Logging in…' : 'Log In'}
+                  </button>
                 </form>
 
                 <div className="modal-footer">
-                  Don't have an account? <a href="#" onClick={(e) => { e.preventDefault(); alert('Create Account clicked'); }}>Create Account</a>
+                  {dashboardMode === 'admin'
+                    ? 'Sign in with the CA firm admin account.'
+                    : 'Ask your CA for your portal login if you don\'t have one yet.'}
                 </div>
               </>
             ) : (
@@ -430,7 +455,7 @@ function App() {
                 <div className="step-badge-outer">
                   <div className="step-badge-inner">1</div>
                 </div>
-                <h2 className="welcome-title">Welcome</h2>
+                <h2 className="welcome-title">Welcome{activeAuth.identity ? `, ${activeAuth.identity.name}` : ''}</h2>
                 <p className="welcome-subtitle">
                   <Typewriter text={"Experience the future of digital interaction\nwith our premium platform"} />
                 </p>
@@ -471,8 +496,15 @@ function App() {
           <div className="canvas-dim-overlay" />
 
           {/* Dashboard content */}
-          <Dashboard mode={dashboardMode} />
-
+          <Dashboard
+            mode={dashboardMode}
+            identity={activeAuth.identity}
+            onLogout={async () => {
+              await activeAuth.logout();
+              setShowCanvasPage(false);
+              setStarted(false);
+            }}
+          />
 
         </div>
       )}

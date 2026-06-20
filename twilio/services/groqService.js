@@ -33,6 +33,8 @@ Marathi written in Latin script. Classify the reply into exactly one intent:
 - "language_hi": trader wants Hindi (e.g. "hindi", "हिंदी", "Hindi mein bolo")
 - "language_mr": trader wants Marathi (e.g. "marathi", "मराठी", "Marathi madhe bola")
 - "menu": trader wants the main menu / help / greeting (e.g. "hi", "menu", "help", "namaste", "नमस्कार")
+- "question": trader is asking a question about their own GST/ITC situation rather than giving a command
+  (e.g. "kitna paisa atka hai?", "ABC supplier ne file kiya?", "kaunsa bill chase karna hai?", "why is my ITC low?")
 - "unknown": anything that doesn't clearly fit
 
 If the intent is "correction", also extract a "corrections" object containing
@@ -78,4 +80,64 @@ async function transcribeAudio(buffer, filename, contentType, language) {
   return (response.text || "").trim();
 }
 
-module.exports = { parseIntent, transcribeAudio };
+const LANGUAGE_NAMES = { en: "English", hi: "Hindi", mr: "Marathi" };
+
+/**
+ * "Ask Munshi" Q&A — answers a free-text question using ONLY the supplied
+ * structured facts (the trader's own already-computed reconciliation
+ * context). The model never recalculates a rupee figure; if the facts don't
+ * cover the question it should say so rather than guessing.
+ */
+async function answerQuestion(question, context, language = "hi") {
+  const languageName = LANGUAGE_NAMES[language] || "Hindi";
+  const systemPrompt =
+    `You are Munshi, a GST assistant for a small Indian trader, answering on WhatsApp in ${languageName}. ` +
+    "You are given JSON facts already computed by a deterministic reconciliation engine — vendor names, " +
+    "invoice numbers, rupee amounts, issue types, recommendations. Answer the trader's question using ONLY " +
+    "these facts. Never invent or recalculate a rupee figure. If the facts don't contain what's being asked, " +
+    "say plainly that you don't have that information yet and suggest sending bills/GSTR-2B or typing 'check'. " +
+    "Keep the answer short — 2-4 sentences, shopkeeper-friendly, no jargon.";
+
+  try {
+    const response = await client().chat.completions.create({
+      model: INTENT_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Facts: ${JSON.stringify(context)}\n\nQuestion: ${question}` },
+      ],
+      temperature: 0.2,
+    });
+    return response.choices[0].message.content.trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Optional politeness pass over a deterministic supplier-message draft.
+ * Falls back to the draft unchanged if Groq is unavailable — the message
+ * is always forwardable even without this step.
+ */
+async function polishSupplierMessage(draft, language = "en") {
+  const languageName = LANGUAGE_NAMES[language] || "English";
+  try {
+    const response = await client().chat.completions.create({
+      model: INTENT_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            `Rewrite this GST-supplier follow-up message in polite, natural ${languageName}. ` +
+            "Keep every number, invoice number, and vendor name exactly as given. Keep it short — 2-4 sentences.",
+        },
+        { role: "user", content: draft },
+      ],
+      temperature: 0.3,
+    });
+    return response.choices[0].message.content.trim();
+  } catch {
+    return draft;
+  }
+}
+
+module.exports = { parseIntent, transcribeAudio, answerQuestion, polishSupplierMessage };

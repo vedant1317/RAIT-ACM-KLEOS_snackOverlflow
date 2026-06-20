@@ -1,220 +1,224 @@
 # Munshi
 
-**The CA in your pocket.** A WhatsApp bot for Indian MSME traders that reads
-their invoices, reconciles them against their GSTR-2B, and tells them in
-plain Hindi/English exactly how much Input Tax Credit they're about to lose
-and what to do about it — citing the specific bill every time.
+**The CA in your pocket.** Munshi is now a three-part GST compliance demo:
+a multilingual WhatsApp bot for MSME traders, a CA admin dashboard, and a
+client self-service portal. All three use the same FastAPI compliance brain
+so uploaded invoices, GSTR-2B baselines, reconciliation issues, ITC impact,
+reports, reminders, and supplier follow-ups stay consistent across channels.
 
-See [`context/ps.txt`](context/ps.txt) for the original problem statement,
-[`context/solution.txt`](context/solution.txt) for the full product vision,
-and [`context/implementation.txt`](context/implementation.txt) for a
-detailed log of what was actually built and verified.
+See [context/ps.txt](context/ps.txt) for the original problem statement,
+[context/solution.txt](context/solution.txt) for the product vision, and
+[context/implementation.txt](context/implementation.txt) for the current
+implementation and verification log.
 
-## How it works
+## Architecture
 
+```text
+frontendmain/  Vite React SPA
+  - Admin Mode for CA firms
+  - Client Mode for a single CA client
+  - Separate CA/client bearer-token scopes in localStorage
+        |
+        | HTTP JSON / file upload / PDF download
+        v
+backend/  FastAPI compliance brain
+  - Invoice extraction, GSTR-2B ingestion, reconciliation, ITC math
+  - CA platform APIs under /ca
+  - Client portal APIs under /client
+  - Trader/WhatsApp APIs for extraction, baseline upload, confirmation,
+    reconciliation, health checks, rate limiting, auth, audit, retention
+        |
+        v
+MongoDB
+  - Trader sessions and uploaded data
+  - CA firms, users, clients, invoices, baselines, issues, alerts,
+    reminders, sessions, audit logs, suppliers, ERP keys
+
+twilio/  Node/Express WhatsApp adapter
+  - Twilio webhook, media download, voice transcription, language handling
+  - Calls backend/ for all GST and reconciliation logic
+  - Sends WhatsApp text, interactive issue lists, nudges, optional TTS media
 ```
-WhatsApp (trader's phone)
-        │  Twilio Sandbox
-        ▼
-twilio/   Node/Express — the WhatsApp channel adapter
-  - Twilio webhook, per-trader session state (MongoDB)
-  - Downloads media (invoice photos/PDFs, GSTR-2B documents)
-  - Groq: WhatsApp voice-note transcription / free-text intent & correction parsing
-  - Calls backend/ for everything GST-related
-  - Formats Hindi/Marathi/English WhatsApp replies, incl. a tap-to-expand
-    interactive list of reconciliation issues
-        │  HTTP
-        ▼
-backend/  Python/FastAPI — the "compliance brain"
-  - POST /extract-invoice        Gemini Vision -> structured invoice JSON
-  - POST /2b/upload              parses the trader's GSTR-2B baseline
-  - POST /invoices/confirm       stores a trader-confirmed invoice
-  - POST /reconcile/{trader_id}  pandas matching + HSN lookup + ITC impact
-                                  + Groq Hindi/English narration
-```
 
-The core design principle: **AI never computes a rupee figure.** Gemini
-only reads documents into structured fields; pandas does all matching and
-arithmetic deterministically; Groq only narrates facts it's handed. This
-keeps every number reproducible and auditable.
+The core design principle still holds: **AI never computes money.** Gemini
+and Groq are used for document reading, transcription, narration, and message
+polish. Matching, classifications, HSN/SAC checks, ITC impact, reports, and
+simulations are deterministic backend code.
 
-## Prerequisites
+## Current Feature Set
 
-- Python 3.11+ and Node 18+
-- MongoDB running locally (`brew services start mongodb-community`) or an
-  Atlas connection string
-- [ngrok](https://ngrok.com) (for exposing the bot to Twilio's webhook)
-- API keys: a Twilio account with WhatsApp Sandbox enabled, a
-  [Google AI Studio](https://aistudio.google.com/apikey) key for Gemini, and
-  a [Groq](https://console.groq.com) key
+- Invoice extraction from image/PDF inputs with confidence and review flags.
+- GSTR-2B ingestion from CSV, XLSX, and PDF paths.
+- Deterministic reconciliation across invoices and GSTR-2B records.
+- ITC-at-risk calculation, recovery tracking, action cards, and status
+  lifecycle for issues.
+- HSN/SAC categorisation with service/product segregation support from the
+  local HSN master data.
+- Anomaly detection and recommendation generation.
+- Multi-period reconciliation history.
+- Supplier reminder drafts and optional Groq-polished supplier messages.
+- Vendor compliance scorecard and supplier risk forecasting.
+- Alerts, due reminders, and GST compliance timeline.
+- Monthly PDF report generation for clients.
+- Financial impact simulator for "what if these issues are resolved?"
+- CA knowledge graph views for client/supplier/issue/HSN relationships.
+- ERP import mapping for common exports, generic ERP invoice ingest, and
+  hashed ERP API keys.
+- CA admin login, client portal login, session revocation, rate limiting,
+  hashed secrets, bcrypt passwords, soft delete, export, audit logs, and
+  retention purge.
+- WhatsApp multilingual flow in English, Hindi, and Marathi.
+- WhatsApp voice-note input through Groq transcription.
+- WhatsApp status, remind, Q&A/help, review, batch-upload, nudge, and
+  optional TTS voice-reply flows.
 
 ## Setup
 
-### 1. Backend (compliance brain)
+### Backend
+
+Run from the repo root so `backend` imports as a package.
 
 ```bash
-cd backend
-python3 -m venv venv
-./venv/bin/pip install -r requirements.txt
-cp .env.example .env   # fill in GEMINI_API_KEY and GROQ_API_KEY
-./venv/bin/python -m uvicorn backend.main:app --port 8000   # run from repo root, not backend/
-```
-
-Run from the **repo root**, since `backend` is imported as a package:
-
-```bash
-cd /path/to/repo
+cd /path/to/RAIT-ACM-KLEOS_snackOverlflow
+python3 -m venv backend/venv
+backend/venv/bin/pip install -r backend/requirements.txt
 backend/venv/bin/python -m uvicorn backend.main:app --port 8000
 ```
 
-Sanity-check the deterministic reconciliation engine on its own (no API
-keys, no network needed):
+Backend environment variables:
 
-```bash
-backend/venv/bin/python -m pytest backend/tests -v
+```text
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB_NAME=munshi
+GEMINI_API_KEY=...
+GROQ_API_KEY=...
+GEMINI_MODEL=gemini-3.1-flash-lite
+GROQ_EXPLAIN_MODEL=llama-3.3-70b-versatile
+SERVICE_TOKEN=optional-shared-token-for-service-calls
+CA_ADMIN_TOKEN=optional-static-ca-bearer-token
+CA_ADMIN_PASSWORD=admin1234
+DEMO_CLIENT_PASSWORD=demo1234
+SECURITY_PEPPER=change-this-outside-demo
+DATA_RETENTION_DAYS=365
+RATE_LIMIT_PER_MINUTE=120
+ALERT_ITC_AT_RISK_THRESHOLD=5000
+NUDGE_ITC_AT_RISK_THRESHOLD=1000
 ```
 
-### 2. WhatsApp bot
+### Frontend
+
+`frontendmain/` is the active frontend. The older `frontend/` directory is
+legacy and is not the current app.
+
+```bash
+cd frontendmain
+npm install
+VITE_API_URL=http://localhost:8000 npm run dev
+```
+
+Frontend environment variables:
+
+```text
+VITE_API_URL=http://localhost:8000
+```
+
+### WhatsApp Bot
 
 ```bash
 cd twilio
 npm install
-cp .env.example .env   # fill in TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, GROQ_API_KEY
-npm start               # listens on PORT (default 3002)
+npm start
 ```
 
-### 3. Expose it and connect the Twilio Sandbox
-
-In a second terminal:
+Expose the local bot to Twilio when testing WhatsApp:
 
 ```bash
 ngrok http 3002
-cd twilio && node scripts/update-twilio-webhooks.js
+cd twilio
+node scripts/update-twilio-webhooks.js
 ```
 
-The script writes the live tunnel URL into `twilio/.env` as `NGROK_URL`,
-prints the exact webhook URL, and copies it to your clipboard. Twilio's
-WhatsApp **Sandbox** has no public API for setting its inbound webhook
-(unlike a purchased number), so the last step is manual:
+Paste the generated webhook URL into Twilio Sandbox Settings as the inbound
+WhatsApp webhook with method `POST`.
 
-> Twilio Console → Messaging → Try it out → Send a WhatsApp message →
-> Sandbox Settings → paste the URL into **"WHEN A MESSAGE COMES IN"**
-> (method `POST`) → Save.
+Twilio environment variables:
 
-Re-run `node scripts/update-twilio-webhooks.js` every time you restart
-ngrok — the free tier issues a new URL each time.
-
-Make sure your phone has joined the sandbox once (`join <code>`, found on
-the same Sandbox Settings page), then message it.
-
-## Using it
-
-1. Send `hi` — get a Hindi-first menu.
-2. Send a photo/PDF of an invoice — the bot extracts the 8 key fields via
-   Gemini Vision and asks you to confirm or correct them.
-3. Send your GSTR-2B export as a document (CSV or Excel).
-4. Send or say `check` in a WhatsApp voice note — the bot runs reconciliation
-   and sends back a tappable list of issues found, each with its rupee impact.
-   Tap a row for the full explanation, citing that specific bill.
-5. Send or say `english` / `hindi` / `marathi` any time to switch language.
-
-## Demo data
-
-`backend/data/` ships a seeded demo dataset — `demo_gstr2b.csv` plus five
-fixtures under `demo_invoices/` — with one deliberate mismatch of each type
-(missing from 2B, wrong HSN code, amount mismatch, duplicate invoice) so the
-reconciliation engine always has something concrete to catch. See
-`context/implementation.txt` for exactly which invoice maps to which issue
-and the expected rupee amounts.
-
-## Project layout
-
-```
-backend/
-  main.py                       FastAPI app
-  core/                         extraction, reconciliation, ITC, explanation
-  ca_platform/                  CA SaaS API, matching, JSON persistence
-  routers/                      HTTP endpoints
-  data/                         HSN master list + seeded demo dataset
-  tests/                        pytest for the reconciliation engine
-
-frontend/
-  app/                          Next.js CA platform dashboard
-  components/                   dashboard UI components
-  lib/                          typed API client and formatting helpers
-
-twilio/
-  server.js                     Express app
-  routes/sms.js                 Twilio webhook
-  services/                     Twilio media, backend client, Groq, replies
-  scripts/update-twilio-webhooks.js
-
-context/
-  ps.txt, solution.txt          original problem statement & product vision
-  implementation.txt            build log: what was done, in what order, verified how
+```text
+PORT=3002
+MONGODB_URI=mongodb://localhost:27017/munshi_whatsapp
+BACKEND_URL=http://localhost:8000
+SERVICE_TOKEN=optional-shared-token-matching-backend
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+GROQ_API_KEY=...
+GROQ_INTENT_MODEL=llama-3.3-70b-versatile
+GROQ_TRANSCRIPTION_MODEL=whisper-large-v3
+ENABLE_TTS=false
+NGROK_URL=https://your-ngrok-url.ngrok-free.app
+GROQ_TTS_MODEL=playai-tts
+GROQ_TTS_VOICE=Fritz-PlayAI
+NUDGE_SECRET=...
+CA_ADMIN_TOKEN=...
+NUDGE_TEMPLATE_SID=optional-twilio-template
 ```
 
-## CA Platform (Mode 3 — the B2B SaaS for CA firms)
+## Demo Credentials
 
-The same compliance brain now also powers a **multi-tenant web app for CA
-firms** — `solution.txt`'s "Mode 3 — CA Platform". Where the WhatsApp bot
-serves one trader, the CA platform lets a firm manage *many* clients from one
-console and drops on top of each client's existing ERP.
+The backend seeds demo CA and client accounts when the CA platform imports.
 
-```
-frontend/  Next.js 16 — the CA SaaS dashboard
-  /dashboard            firm-wide admin view (portfolio, ITC at risk, health)
-  /clients              every client with live compliance status
-  /clients/[id]         per-client overview + ERP integration key
-  /clients/[id]/invoices  the Invoice Manager (full reconciliation mapping)
-        │  HTTP (fetch)
-        ▼
-backend/ca_platform/   FastAPI router mounted at /ca
-  matching.py   invoice<->2B AND invoice<->invoice mapping (pure Python),
-                reusing core/itc_engine + core/hsn_lookup + recommendation_engine
-  service.py    firm portfolio, per-client reconcile, ERP ingestion, health score
-  store.py      JSON-file persistence (no MongoDB needed — runs out of the box)
-  seed.py       a demo firm with 4 clients exercising every mapping outcome
-  router.py     /ca/* REST endpoints + /ca/integrations/erp/invoices
+```text
+CA admin email:    admin@sharma-associates.example
+CA admin password: admin1234, unless CA_ADMIN_PASSWORD overrides it
+
+Client email:      <client_id>@demo.munshi.local
+Client password:   demo1234, unless DEMO_CLIENT_PASSWORD overrides it
+Example:           cli_lakshmi@demo.munshi.local
 ```
 
-The Invoice Manager is the headline feature: it takes all of a client's
-invoices plus their GSTR-2B and maps them against each other to surface
-**duplicates**, **missing invoices** (both *missing-from-2B* — ITC blocked —
-and the reverse *missing-in-books*), and **wrong details** (field-by-field
-amount/tax/HSN/date diffs), each with its exact rupee ITC impact. All money
-math is the deterministic `core` engine; no AI computes a figure.
+## Verification
 
-ERP integration is the "tool on top of company software" path: each client is
-issued an API key at onboarding, and their ERP pushes invoices via
-`POST /ca/integrations/erp/invoices` (header `X-API-Key`).
-
-### Run the CA platform
+Commands:
 
 ```bash
-# backend (from repo root) — auto-seeds the demo firm on first request
-python -m uvicorn backend.main:app --port 8000
-# the CA platform itself needs no Gemini/Groq/Mongo; those stay optional and
-# are only used by the WhatsApp pipeline and (optionally) reconcile narration.
-
-# frontend
-cd frontend && npm install && npm run dev   # http://localhost:3000
+backend/venv/bin/python -m pytest backend/tests -v
+cd frontendmain && npm run build
+cd frontendmain && npm run lint
+node -e "require('./twilio/routes/sms'); require('./twilio/services/nudgeService'); require('./twilio/services/voiceReplyService'); console.log('ok')"
 ```
 
-Tests for the new mapping engine live in `backend/tests/test_ca_matching.py`
-and run with the existing suite (`python -m pytest backend/tests -v`).
+Latest smoke-test notes from 2026-06-20:
 
-## What's deliberately not built
+- Backend tests: `41 passed in 3.61s`.
+- Backend health on the current app at `127.0.0.1:8001`: `status=ok`,
+  Mongo reachable, Gemini configured, Groq configured.
+- Authenticated CA API smoke passed for login, portfolio, clients,
+  reconciliation get/run/history, issue listing, issue status update,
+  supplier draft, vendors, vendor forecast, alerts, due reminders, timeline,
+  simulator, and monthly PDF report.
+- Authenticated client API smoke passed for login, `/client/me`,
+  reconciliation, issues, timeline, and monthly PDF report.
+- Frontend build: passed with Vite.
+- Frontend dev server: served the Vite app shell at `127.0.0.1:5173` against
+  the live backend URL.
+- Twilio import check: passed.
+- Twilio server health: passed on temporary port `3012`; default port `3002`
+  was already occupied by an existing process.
+- Frontend lint: not clean yet. Current ESLint failures are in
+  `frontendmain/scratch.js`, `frontendmain/src/App.jsx`,
+  `frontendmain/src/components/ui/Dashboard.jsx`,
+  `frontendmain/src/components/ui/horizontal-bars.jsx`, and
+  `frontendmain/src/components/ui/vertical-bars.jsx`.
+- Browser click-through automation was not run because Playwright/Puppeteer
+  are not installed in this workspace. The live frontend/backend smoke was
+  verified through Vite serving plus authenticated backend API calls.
 
-Live GST portal integration, auto-filing of corrections, generated voice
-output/TTS replies, and the trader-facing MSME dashboard are out of scope for
-this prototype (see `context/solution.txt`'s "what to deliberately NOT
-build" section for the original scope notes). WhatsApp voice-note input is
-implemented through Groq transcription. The CA platform is no longer future
-scope: a demo B2B dashboard now exists in `frontend/` and is backed by the
-`backend/ca_platform/` API.
+## Scope Boundaries
 
-The production GST-portal path would need authorized GST/GSP-style API
-access, taxpayer consent, and human approval for filing actions. This
-prototype deliberately uses uploaded GSTR-2B files instead of live portal
-sync, and it recommends fixes rather than filing anything automatically.
+Munshi still does **not** do live GST portal/GSTN/GSP auto-fetch, auto-filing
+of corrections, e-invoice/IRN/e-way bill workflows, or IMS/pre-14th portal
+operations. Uploaded GSTR-2B files remain the baseline for reconciliation.
+
+The app can recommend actions, draft supplier messages, generate reports,
+and track statuses, but a human must review and execute GST portal actions.
+Production deployment hardening beyond this local demo has not been verified.

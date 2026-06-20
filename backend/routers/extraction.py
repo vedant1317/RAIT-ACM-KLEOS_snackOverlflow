@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
+from ..ca_platform.auth import require_service_token
 from ..core import extraction_service
 from ..models.schemas import ExtractedInvoice
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_service_token)])
 
 
 @router.post("/extract-invoice", response_model=ExtractedInvoice)

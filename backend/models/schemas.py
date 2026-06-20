@@ -15,6 +15,8 @@ class ExtractedInvoice(BaseModel):
     gst_rate: float
     gst_amount: float
     hsn_code: str
+    needs_review: bool = False
+    review_reasons: list[str] = []
 
 
 class MismatchType(str, Enum):

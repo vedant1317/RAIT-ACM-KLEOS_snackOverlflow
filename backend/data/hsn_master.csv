@@ -1,11 +1,17 @@
-hsn_code,description,gst_rate
-1006,Rice,5
-0901,Coffee,5
-6109,T-shirts (knitted/crocheted),5
-3004,Medicaments,12
-3923,Plastic packing goods,18
-8471,Computers,18
-8517,Telephone sets and smartphones,18
-8443,Printing machinery,18
-2106,Food preparations not elsewhere specified,18
-4901,Printed books,0
+hsn_code,description,gst_rate,type,category
+1006,Rice,5,goods,food_grains
+0901,Coffee,5,goods,food_beverages
+6109,T-shirts (knitted/crocheted),5,goods,textiles
+3004,Medicaments,12,goods,pharma
+3923,Plastic packing goods,18,goods,plastics
+8471,Computers,18,goods,electronics
+8517,Telephone sets and smartphones,18,goods,electronics
+8443,Printing machinery,18,goods,machinery
+2106,Food preparations not elsewhere specified,18,goods,food_beverages
+4901,Printed books,0,goods,publishing
+9965,Goods transport agency services,18,services,logistics
+9968,Postal and courier services,18,services,logistics
+9983,"Other professional, technical and business services",18,services,professional_services
+9995,Services of membership organisations (club/fitness),18,services,membership
+9963,"Accommodation, food and beverage services (outdoor catering)",18,services,hospitality
+8703,Motor vehicles for transport of persons,28,goods,automobiles

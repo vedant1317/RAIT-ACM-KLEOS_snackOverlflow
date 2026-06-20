@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from ..ca_platform.auth import require_service_token
 from ..core import explanation_service
 from ..core.reconciliation_engine import reconcile
 from ..db.mongo import get_db
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_service_token)])
 
 
 @router.post("/reconcile/{trader_id}")

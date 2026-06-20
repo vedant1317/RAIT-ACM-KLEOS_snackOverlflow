@@ -886,6 +886,14 @@ code {
   color: #000000;
 }
 
+.login-error-text {
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  margin: -4px 0 12px;
+  text-align: center;
+}
+
 /* Log In Button */
 .login-btn {
   background: #000000;
@@ -908,6 +916,11 @@ code {
   background: #1e293b;
   border-color: #ffffff;
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Modal Footer */
@@ -1143,6 +1156,95 @@ code {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.db-navbar-client-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.client-selector {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.client-selector option {
+  background: #0d0f1a;
+  color: #e5e7eb;
+}
+
+.navbar-action-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 9999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.navbar-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.db-status-banner {
+  margin: 0 24px 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pc-issues-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.pc-issue-row {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pc-issue-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.pc-issue-actions .pc-update-btn {
+  width: auto;
+  padding: 8px 12px;
+  font-size: 12px;
 }
 
 .notif-bell-wrapper {

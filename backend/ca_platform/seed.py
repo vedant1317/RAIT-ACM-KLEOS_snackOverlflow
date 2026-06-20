@@ -1,15 +1,33 @@
 """Seed a demo CA firm with several clients so the dashboards are populated.
 
-Each client's books + GSTR-2B are crafted to exercise every mapping outcome:
-matched, duplicate, missing-in-2B, missing-in-books, amount/detail mismatch,
-and HSN issues — so the invoice manager always has something concrete to show.
+``_build_state()`` is kept exactly as the original JSON-store version (same
+four clients, same exact rupee figures) because ``tests/test_ca_matching.py``
+calls it directly and asserts specific numbers from it — it must stay a pure,
+Mongo-free in-memory builder. Everything Mongo-related (the real persistence
+path used by the running API) lives in ``ensure_seeded()``/``force_reseed()``,
+which write that same baseline data into MongoDB via ``store.py`` and then
+layer additional demo data on top: a multi-month client with a repeat-offender
+shared vendor, a services-sector client with SAC codes, and a couple of
+issue-status examples so the ITC recovery tracker has something to show.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import os
 
+from ..core.security import generate_token
 from . import store
+
+_GST_FIELDS = (
+    "vendor_name",
+    "vendor_gstin",
+    "invoice_number",
+    "invoice_date",
+    "taxable_value",
+    "gst_rate",
+    "gst_amount",
+    "hsn_code",
+)
 
 
 def _inv(vendor, gstin, number, date, taxable, rate, amount, hsn) -> dict:
@@ -25,11 +43,19 @@ def _inv(vendor, gstin, number, date, taxable, rate, amount, hsn) -> dict:
     }
 
 
+def _only_gst_fields(record: dict) -> dict:
+    return {k: record[k] for k in _GST_FIELDS}
+
+
 def _now() -> str:
+    from datetime import datetime, timezone
+
     return datetime.now(timezone.utc).isoformat()
 
 
 def _build_state() -> dict:
+    """Pure, Mongo-free builder — DO NOT add Mongo calls here. Covered
+    directly by tests/test_ca_matching.py with exact expected rupee figures."""
     clients = []
     invoices: dict[str, list] = {}
     baselines: dict[str, list] = {}
@@ -171,13 +197,217 @@ def _build_state() -> dict:
     }
 
 
+# --------------------------------------------------------------------------- #
+# extra demo data layered on top of the baseline four clients (Mongo-only):
+# a multi-month client with a repeat-offender shared vendor, and a
+# services-sector client exercising SAC codes.
+# --------------------------------------------------------------------------- #
+def _extra_clients() -> list[dict]:
+    return [
+        {
+            "client": {
+                "name": "Global General Traders",
+                "gstin": "27AAAGG7890E1Z1",
+                "industry": "Retail / Trading",
+                "contact_name": "Priya Mehta",
+                "contact_phone": "+91 98765 22233",
+                "erp_system": "Tally Prime",
+                "filing_frequency": "monthly",
+            },
+            "months": [
+                {
+                    "period": "2026-03",
+                    "books": [
+                        _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "GT-001", "2026-03-04", 15000, 5, 750, 1006),
+                        # repeat offender: same vendor as cli_lakshmi's HSN issue, different client/month
+                        _inv("Surat Mills", "24SURMI1111E1Z9", "GT-002", "2026-03-09", 40000, 12, 4800, 6109),
+                    ],
+                    "twob": [
+                        _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "GT-001", "2026-03-04", 15000, 5, 750, 1006),
+                        _inv("Surat Mills", "24SURMI1111E1Z9", "GT-002", "2026-03-09", 40000, 12, 4800, 6109),
+                    ],
+                },
+                {
+                    "period": "2026-04",
+                    "books": [
+                        _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "GT-004", "2026-04-06", 20000, 5, 1000, 1006),
+                        # Surat Mills slips again — missing from 2B this time
+                        _inv("Surat Mills", "24SURMI1111E1Z9", "GT-005", "2026-04-11", 35000, 12, 4200, 6109),
+                    ],
+                    "twob": [
+                        _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "GT-004", "2026-04-06", 20000, 5, 1000, 1006),
+                    ],
+                },
+                {
+                    "period": "2026-05",
+                    "books": [
+                        _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "GT-006", "2026-05-05", 18000, 5, 900, 1006),
+                        _inv("Velvet Traders", "24VELTR5555J1Z6", "GT-007", "2026-05-09", 12000, 5, 600, 6109),
+                    ],
+                    "twob": [
+                        _inv("ABC Foods Pvt Ltd", "27ABCFA1234A1Z5", "GT-006", "2026-05-05", 18000, 5, 900, 1006),
+                        _inv("Velvet Traders", "24VELTR5555J1Z6", "GT-007", "2026-05-09", 12000, 5, 600, 6109),
+                    ],
+                },
+            ],
+        },
+        {
+            "client": {
+                "name": "Swift Logistics & Services",
+                "gstin": "29AAASL6543F1Z9",
+                "industry": "Logistics / Services",
+                "contact_name": "Arjun Rao",
+                "contact_phone": "+91 90000 44455",
+                "erp_system": "Zoho Books",
+                "filing_frequency": "monthly",
+            },
+            "months": [
+                {
+                    "period": "2026-05",
+                    "books": [
+                        # SAC (service) codes rather than HSN (goods)
+                        _inv("CourierPro Services", "29COURI8888G1Z2", "SL-501", "2026-05-07", 25000, 18, 4500, 9968),
+                        _inv("LegalEase Advisors", "29LEGAL9999H1Z3", "SL-502", "2026-05-12", 10000, 18, 1800, 9983),
+                    ],
+                    "twob": [
+                        _inv("CourierPro Services", "29COURI8888G1Z2", "SL-501", "2026-05-07", 25000, 18, 4500, 9968),
+                        _inv("LegalEase Advisors", "29LEGAL9999H1Z3", "SL-502", "2026-05-12", 10000, 18, 1800, 9983),
+                    ],
+                },
+            ],
+        },
+    ]
+
+
+def _seed_baseline_clients_into_mongo() -> None:
+    state = _build_state()
+    store.upsert_firm(state["firm"])
+    for client in state["clients"]:
+        client_id = client["id"]
+        store.insert_client({**client, "id": client_id, "firm_id": state["firm"]["id"]})
+        store.create_erp_key(client_id)  # real hashed key; the demo key in _build_state() is display-only
+        books = [_only_gst_fields(b) for b in state["invoices"][client_id]]
+        twob = [_only_gst_fields(b) for b in state["baselines"][client_id]]
+        store.add_invoices(client_id, books, source="erp")
+        store.set_baseline(client_id, twob, period="2026-05")
+        store.log_activity(client_id, "client_created", f"Onboarded client {client['name']}")
+        store.log_activity(client_id, "invoices_added", f"{len(books)} invoice(s) ingested via erp ({client['erp_system']})")
+        store.log_activity(client_id, "baseline_uploaded", f"GSTR-2B uploaded ({len(twob)} rows)")
+
+
+def _seed_extra_clients_into_mongo() -> None:
+    for entry in _extra_clients():
+        client_id = store.new_id("cli")
+        client = {**entry["client"], "id": client_id, "firm_id": store.FIRM_ID, "created_at": store.now()}
+        store.insert_client(client)
+        store.create_erp_key(client_id)
+        for month in entry["months"]:
+            books = [_only_gst_fields(b) for b in month["books"]]
+            twob = [_only_gst_fields(b) for b in month["twob"]]
+            store.add_invoices(client_id, books, source="import")
+            store.set_baseline(client_id, twob, period=month["period"])
+        store.log_activity(client_id, "client_created", f"Onboarded client {client['name']}")
+
+
+def _seed_issue_status_examples() -> None:
+    """Run reconciliation once for every client so ``ca_issues`` is populated,
+    then mark a couple of issues with non-default statuses so the ITC
+    recovery tracker has something to demonstrate beyond 'open'."""
+    from . import service
+
+    for client in store.list_clients():
+        try:
+            service.run_reconcile(client["id"], language="English")
+        except Exception:
+            continue
+
+    lakshmi_issues = store.list_issues(client_id="cli_lakshmi")
+    for issue in lakshmi_issues:
+        if issue["invoice_number"] == "LT-203" and issue["type"] == "missing_from_2b":
+            store.set_issue_status(issue["id"], "chasing", "Called Dye Works on 18 May, awaiting GSTR-1 filing.", "seed")
+        if issue["invoice_number"] == "LT-204":
+            store.set_issue_status(issue["id"], "resolved", "Supplier corrected the HSN code and reissued the invoice.", "seed")
+
+    patel_issues = store.list_issues(client_id="cli_patel")
+    for issue in patel_issues:
+        if issue["invoice_number"] == "PP-301":
+            store.set_issue_status(issue["id"], "chasing", "Follow-up email sent to MedSource Labs.", "seed")
+
+
+_DEMO_CLIENT_PASSWORD = os.environ.get("DEMO_CLIENT_PASSWORD", "demo1234")
+_DEMO_ADMIN_PASSWORD = os.environ.get("CA_ADMIN_PASSWORD", "admin1234")
+
+
 def ensure_seeded() -> None:
     """Seed only if the store has no clients yet."""
-    state = store.read()
-    if state.get("clients"):
+    if store.list_clients():
+        _ensure_demo_admin_user()
+        _ensure_demo_client_portal_accounts()
         return
-    store.reset(_build_state())
+    _seed_baseline_clients_into_mongo()
+    _seed_extra_clients_into_mongo()
+    _seed_issue_status_examples()
+    _ensure_demo_admin_user()
+    _ensure_demo_client_portal_accounts()
+    _run_post_seed_hooks()
 
 
 def force_reseed() -> None:
-    store.reset(_build_state())
+    store.wipe_demo_data()
+    _seed_baseline_clients_into_mongo()
+    _seed_extra_clients_into_mongo()
+    _seed_issue_status_examples()
+    _ensure_demo_admin_user()
+    _ensure_demo_client_portal_accounts()
+    _run_post_seed_hooks()
+
+
+def _ensure_demo_admin_user() -> None:
+    if store.any_user_exists():
+        return
+    raw_token = os.environ.get("CA_ADMIN_TOKEN") or generate_token("ca")
+    store.create_user(
+        store.FIRM_ID,
+        "Demo Admin",
+        "admin@sharma-associates.example",
+        "admin",
+        raw_token,
+        raw_password=_DEMO_ADMIN_PASSWORD,
+    )
+    print(
+        "\n[ca_platform.seed] CA admin login for the frontend:\n"
+        "  email:    admin@sharma-associates.example\n"
+        f"  password: {_DEMO_ADMIN_PASSWORD}\n"
+    )
+    if not os.environ.get("CA_ADMIN_TOKEN"):
+        print(
+            "[ca_platform.seed] No CA_ADMIN_TOKEN set — generated a demo admin "
+            f"bearer token for direct /ca/* API access:\n  {raw_token}\n"
+            "Set CA_ADMIN_TOKEN in backend/.env to keep this stable across restarts.\n"
+        )
+
+
+def _ensure_demo_client_portal_accounts() -> None:
+    """Give every seeded client a self-service login so the frontend's
+    'Client Mode' has real demo credentials to log in with."""
+    created = []
+    for client in store.list_clients():
+        if store.get_client_account(client["id"]) is not None:
+            continue
+        email = f"{client['id']}@demo.munshi.local"
+        store.create_client_account(client["id"], email, _DEMO_CLIENT_PASSWORD)
+        created.append((client["name"], email))
+    if created:
+        lines = "\n".join(f"  {name}: {email} / {_DEMO_CLIENT_PASSWORD}" for name, email in created)
+        print(f"\n[ca_platform.seed] Client portal logins (password is the same for all demo clients):\n{lines}\n")
+
+
+def _run_post_seed_hooks() -> None:
+    """Best-effort: light up alerts/reminders examples once those modules
+    exist, without making seeding depend on their build order."""
+    try:
+        from ..core import alert_engine
+
+        alert_engine.evaluate_all()
+    except Exception:
+        pass
