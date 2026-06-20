@@ -119,14 +119,15 @@ code {
 .data-grid-hero {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   box-sizing: border-box;
   margin: 0;
-  padding: 40px 0 0 0;
+  padding: 0;
   border: none;
   background-color: #090d16;
 }
@@ -1181,6 +1182,55 @@ code {
   gap: 12px;
 }
 
+
+.db-nav-pill {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.07);
+  border-radius: 30px;
+  padding: 0 4px;
+  height: 44px;
+  border: 1px solid rgba(255,255,255,0.12);
+  gap: 4px;
+}
+
+.nav-pill-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-pill-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.nav-pill-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,0.2);
+  margin: 0 4px;
+}
+
+/* Update notif-bell-btn inside nav-pill */
+.db-nav-pill .notif-bell-btn {
+  border: none;
+  background: transparent;
+  width: 36px;
+  height: 36px;
+}
+
+.db-nav-pill .notif-bell-btn:hover {
+  background: rgba(245, 158, 11, 0.15);
+
 .db-navbar-client-name {
   font-size: 13px;
   font-weight: 600;
@@ -1236,6 +1286,7 @@ code {
   color: #bfdbfe;
   font-size: 13px;
   font-weight: 600;
+
 }
 
 .navbar-action-btn-highlight {
@@ -4048,4 +4099,152 @@ code {
   font-family: 'Footlight MT Light', 'Footlight', 'Times New Roman', serif !important;
   font-weight: normal !important;
   letter-spacing: 0.5px;
+}
+
+
+/* ── Integration Marquee ── */
+.integration-banners {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 40px 0;
+  margin-bottom: 80px; /* added spacing before FAQ section */
+  overflow: hidden;
+  z-index: 10;
+}
+
+.marquee-track-container {
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  white-space: nowrap;
+}
+
+.marquee-track {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+}
+
+.left-to-right .marquee-track {
+  animation: scroll-ltr 40s linear infinite;
+}
+
+.right-to-left .marquee-track {
+  animation: scroll-rtl 40s linear infinite;
+}
+
+@keyframes scroll-ltr {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
+
+@keyframes scroll-rtl {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 30px;
+  padding: 12px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  color: #fff;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+/* ── FAQ Page ── */
+.faq-page-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  padding: 40px 60px;
+  flex-direction: column;
+  z-index: 10;
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.faq-page-heading {
+  display: flex;
+  align-items: flex-end;
+  margin: 0;
+}
+
+.faq-text {
+  font-family: 'Oswald', 'Bebas Neue', 'Impact', sans-serif;
+  font-size: 12vw;
+  font-weight: 900;
+  color: #d1d5db; /* light grey */
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+  transform: scaleY(1.5);
+  transform-origin: bottom left;
+}
+
+.faq-punctuation {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', cursive, sans-serif;
+  font-size: 8vw;
+  color: #fff;
+  line-height: 1;
+  margin-left: 3vw;
+  transform: rotate(-12deg) translateY(-2vw);
+}
+
+.faq-list {
+  margin-top: 80px;
+  max-width: 900px;
+  width: 100%;
+}
+
+.faq-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+}
+
+.faq-item + .faq-item {
+  border-top: none;
+}
+
+.faq-question {
+  font-family: var(--sans);
+  font-size: 22px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.faq-plus-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.faq-plus-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

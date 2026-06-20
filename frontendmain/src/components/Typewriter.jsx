@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function Typewriter({ text, speed = 40, delay = 0 }) {
+export default function Typewriter({ text, speed = 40, delay = 0, onComplete }) {
   const [displayedText, setDisplayedText] = useState('');
   const [isDone, setIsDone] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -21,6 +21,7 @@ export default function Typewriter({ text, speed = 40, delay = 0 }) {
         } else {
           clearInterval(timer);
           setIsDone(true);
+          if (onComplete) onComplete();
         }
       }, speed);
     }, delay);

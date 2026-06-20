@@ -9,6 +9,23 @@ import Typewriter from './components/Typewriter'
 import IntroSequence from './components/IntroSequence'
 import { useAuth } from './hooks/useAuth'
 
+const FAQ_QUESTIONS = [
+  "How does MUNSHI invoicing software help small businesses?",
+  "Is MUNSHI billing software free?",
+  "Can I create e-invoices using MUNSHI?",
+  "How to create a GST invoice in MUNSHI?",
+  "Is my data safe with MUNSHI?"
+];
+
+const INTEGRATIONS = [
+  "QuickBooks", "Xero", "FreshBooks", "Wave Accounting",
+  "Sage Accounting", "Busy Accounting Software", "Marg ERP",
+  "Vyapar", "ProfitBooks", "Kashoo"
+];
+const MARQUEE_ITEMS_1 = [...INTEGRATIONS, ...INTEGRATIONS];
+const MARQUEE_ITEMS_2 = [...INTEGRATIONS].reverse();
+const MARQUEE_ITEMS_2_DUP = [...MARQUEE_ITEMS_2, ...MARQUEE_ITEMS_2];
+
 function App() {
   const [presetIndex, setPresetIndex] = useState(0)
   const [showControls, setShowControls] = useState(false)
@@ -81,22 +98,60 @@ function App() {
         background={background}
       >
         {showIntro ? null : !started ? (
-          <>
-            <h1 className="hero-title">
-              <span>M</span><span>U</span><span>N</span>
-              <span>S</span><span>H</span><span>I</span>
-            </h1>
-            <button
-              type="button"
-              className="get-started-btn"
-              onClick={() => setStarted(true)}
-            >
-              Let's get started! &rarr;
-            </button>
-            <div className="hero-subtitle-pop">
-              <Typewriter text="The CA in Your Pocket That Does Not Exist" speed={50} delay={2300} />
+          <div className="landing-scroll-container" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div className="hero-section" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <h1 className="hero-title">
+                <span>M</span><span>U</span><span>N</span>
+                <span>S</span><span>H</span><span>I</span>
+              </h1>
+              <button
+                type="button"
+                className="get-started-btn"
+                onClick={() => setStarted(true)}
+              >
+                Let's get started! &rarr;
+              </button>
+              <div className="hero-subtitle-pop">
+                <Typewriter 
+                  text="The CA in Your Pocket That Does Not Exist" 
+                  speed={50} 
+                  delay={2300} 
+                />
+              </div>
             </div>
-          </>
+
+            <div className="integration-banners">
+              <div className="marquee-track-container left-to-right">
+                <div className="marquee-track">
+                  {MARQUEE_ITEMS_1.map((name, idx) => (
+                    <div className="marquee-item" key={idx}>{name}</div>
+                  ))}
+                </div>
+              </div>
+              <div className="marquee-track-container right-to-left">
+                <div className="marquee-track">
+                  {MARQUEE_ITEMS_2_DUP.map((name, idx) => (
+                    <div className="marquee-item" key={idx}>{name}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="faq-page-container" style={{ position: 'relative', inset: 'auto', minHeight: '100vh', padding: '60px', display: 'flex', flexDirection: 'column' }}>
+              <h1 className="faq-page-heading">
+                <span className="faq-text">FAQ</span>
+                <span className="faq-punctuation">?!</span>
+              </h1>
+              <div className="faq-list">
+                {FAQ_QUESTIONS.map((question, idx) => (
+                  <div className="faq-item" key={idx}>
+                    <span className="faq-question">{question}</span>
+                    <button className="faq-plus-btn">+</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="modes-container">
             <div className="user-mode-wrapper">
