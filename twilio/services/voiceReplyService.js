@@ -20,7 +20,7 @@ function client() {
   return _client;
 }
 
-const _audioCache = new Map(); // id -> { buffer, contentType, expiresAt }
+const _mediaCache = new Map(); // id -> { buffer, contentType, expiresAt }
 
 function isEnabled() {
   return String(process.env.ENABLE_TTS || "false").toLowerCase() === "true";
@@ -35,17 +35,21 @@ function shortenForSpeech(text) {
   return firstParagraph.length > MAX_SPOKEN_CHARS ? `${firstParagraph.slice(0, MAX_SPOKEN_CHARS)}...` : firstParagraph;
 }
 
-function cacheAudio(buffer, contentType) {
+function cacheMedia(buffer, contentType) {
   const id = crypto.randomBytes(8).toString("hex");
-  _audioCache.set(id, { buffer, contentType, expiresAt: Date.now() + CACHE_TTL_MS });
-  setTimeout(() => _audioCache.delete(id), CACHE_TTL_MS).unref?.();
+  _mediaCache.set(id, { buffer, contentType, expiresAt: Date.now() + CACHE_TTL_MS });
+  setTimeout(() => _mediaCache.delete(id), CACHE_TTL_MS).unref?.();
   return id;
 }
 
-function getCachedAudio(id) {
-  const entry = _audioCache.get(id);
+function getCachedMedia(id) {
+  const entry = _mediaCache.get(id);
   if (!entry || entry.expiresAt < Date.now()) return null;
   return entry;
+}
+
+function getCachedAudio(id) {
+  return getCachedMedia(id);
 }
 
 async function generateSpeech(text) {
@@ -74,7 +78,7 @@ async function maybeSendVoiceReply(to, text, _language) {
   }
 
   const buffer = await generateSpeech(text);
-  const id = cacheAudio(buffer, "audio/wav");
+  const id = cacheMedia(buffer, "audio/wav");
 
   const twilio = require("twilio");
   const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -85,4 +89,4 @@ async function maybeSendVoiceReply(to, text, _language) {
   });
 }
 
-module.exports = { maybeSendVoiceReply, getCachedAudio, isEnabled };
+module.exports = { maybeSendVoiceReply, getCachedAudio, getCachedMedia, cacheMedia, isEnabled };

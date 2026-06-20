@@ -16,7 +16,7 @@ app.use("/", smsRouter);
 // Generated TTS clips (see voiceReplyService.js) are served briefly from
 // memory here so Twilio's mediaUrl can fetch them over the public ngrok URL.
 app.get("/media/:id.:ext", (req, res) => {
-  const entry = voiceReplyService.getCachedAudio(req.params.id);
+  const entry = voiceReplyService.getCachedMedia(req.params.id);
   if (!entry) return res.status(404).end();
   res.set("Content-Type", entry.contentType);
   res.send(entry.buffer);

@@ -910,6 +910,14 @@ code {
   color: #000000;
 }
 
+.login-error-text {
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  margin: -4px 0 12px;
+  text-align: center;
+}
+
 /* Log In Button */
 .login-btn {
   background: #000000;
@@ -932,6 +940,11 @@ code {
   background: #1e293b;
   border-color: #ffffff;
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Modal Footer */
@@ -1169,6 +1182,7 @@ code {
   gap: 12px;
 }
 
+
 .db-nav-pill {
   display: flex;
   align-items: center;
@@ -1216,6 +1230,63 @@ code {
 
 .db-nav-pill .notif-bell-btn:hover {
   background: rgba(245, 158, 11, 0.15);
+
+.db-navbar-client-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.client-selector {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.client-selector option {
+  background: #0d0f1a;
+  color: #e5e7eb;
+}
+
+.navbar-action-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 9999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.navbar-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.db-status-banner {
+  margin: 0 24px 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+
 }
 
 .notif-bell-wrapper {
@@ -1384,6 +1455,71 @@ code {
     0 0 18px rgba(255,255,255,0.25),
     0 0 40px rgba(255,255,255,0.08),
     0 20px 40px rgba(0,0,0,0.5);
+}
+
+/* ═══════════════════════════════════════════════════
+   HERO MONEY STORY + HEALTH SCORE
+═══════════════════════════════════════════════════ */
+.db-hero-money-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.db-hero-money-card,
+.db-health-score-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(17, 19, 24, 0.9));
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.db-health-score-card {
+  align-items: center;
+  text-align: center;
+}
+
+.db-hero-money-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.db-hero-money-value {
+  font-size: 38px;
+  font-weight: 800;
+  color: #34d399;
+  line-height: 1.1;
+}
+
+.db-hero-money-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.db-health-score-ring {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin: 4px 0;
+}
+
+.db-health-score-value {
+  font-size: 38px;
+  font-weight: 800;
+  color: #34d399;
+}
+
+.db-health-score-max {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2484,6 +2620,80 @@ code {
   box-shadow: 0 0 14px rgba(255, 255, 255, 0.38);
 }
 
+.pc-update-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pc-update-btn-success {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+.pc-update-btn-success:hover {
+  border-color: #34d399;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.5);
+}
+
+.pc-money-banner {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 1.15rem;
+  color: #d1fae5;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.pc-money-banner strong {
+  color: #34d399;
+  font-size: 1.3rem;
+}
+
+.pc-issues-list {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.pc-issue-row {
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pc-samjhao-text {
+  padding-left: 0 !important;
+  line-height: 1.5;
+}
+
+.pc-issue-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.pc-issue-actions .pc-update-btn {
+  width: auto;
+  padding: 9px 14px;
+  font-size: 0.8rem;
+}
+
+.pc-draft-disclaimer {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 10px 0 16px;
+}
+
 /* ── Comparison Table in Policy Card ── */
 .comp-title {
   font-size: 0.9rem;
@@ -2532,6 +2742,12 @@ code {
 .comp-val-gstr {
   color: rgba(255, 255, 255, 0.3);
   text-align: right;
+}
+
+.comp-diff {
+  color: #fca5a5 !important;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
 }
 
 /* ─── Reconciliation Popup ─── */
